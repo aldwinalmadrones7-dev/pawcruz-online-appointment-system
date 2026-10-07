@@ -1,0 +1,162 @@
+/* theme.css — Design tokens (CSS variables) for PawCruz Veterinary Clinic.
+   A dark-blue + light-blue palette: navy ink for text and dark sections,
+   light blue for highlights, royal blue for main actions.
+   Brand colors never change; semantic tokens (--bg, --surface, --text…) switch
+   between the light theme (:root) and dark theme ([data-theme="dark"]).
+   Bootstrap 5.3 variables are bridged to these tokens so React-Bootstrap
+   components pick up the brand automatically. */
+
+:root {
+  /* ---- Brand palette (dark & light blue) ---- */
+  --ink: #0b2545; /* dark navy: text, sidebar, dark sections */
+  --brand: #5bb4e5; /* light blue: highlights, selected states */
+  --accent: #1f6fd1; /* royal blue: main call-to-action buttons */
+  --cloud: #f3f8fc; /* page background */
+  --sky: #e3f1fa; /* soft panels */
+  --danger: #e5484d;
+
+  /* ---- Tints & shades ---- */
+  --brand-strong: #3a9ad3; /* hover fill */
+  --brand-ink: #1565a6; /* blue text on light surfaces (WCAG AA) */
+  --brand-soft: #dcedfa;
+  --accent-strong: #1859ad;
+  --accent-ink: #1f6fd1; /* royal-blue text on light surfaces (WCAG AA) */
+  --accent-soft: #e1ecfb;
+  --amber: #f5a524;
+  --amber-ink: #8a5a00;
+  --amber-soft: #fff1d6;
+  --danger-ink: #c2353a;
+  --danger-soft: #fde8e8;
+  --success: #2f9e5b;
+  --success-ink: #1d7a43;
+  --success-soft: #e2f5ea;
+
+  /* ---- Semantic tokens (light) ---- */
+  --bg: var(--cloud);
+  --surface: #ffffff;
+  --surface-alt: var(--sky);
+  --surface-muted: #edf3f8;
+  --text: var(--ink);
+  --text-muted: #4f6478;
+  --text-subtle: #7a8fa3;
+  --border: rgba(11, 37, 69, 0.09);
+  --border-strong: rgba(11, 37, 69, 0.17);
+  --section-dark: #0b2545;
+  --sidebar-bg: linear-gradient(180deg, #0f3460 0%, #0b2545 100%);
+  --nav-bg: rgba(243, 248, 252, 0.85);
+  --overlay: rgba(11, 37, 69, 0.55);
+  --chart-bar: #1f6fd1; /* validated ≥ 3:1 against white */
+  --chart-grid: rgba(11, 37, 69, 0.08);
+
+  /* ---- Shape ---- */
+  --radius-xl: 28px;
+  --radius: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+
+  /* ---- Soft layered shadows ---- */
+  --shadow-xs: 0 1px 2px rgba(11, 37, 69, 0.06);
+  --shadow-sm: 0 1px 2px rgba(11, 37, 69, 0.05), 0 4px 12px rgba(11, 37, 69, 0.06);
+  --shadow-md: 0 2px 4px rgba(11, 37, 69, 0.04), 0 10px 28px rgba(11, 37, 69, 0.1);
+  --shadow-lg: 0 4px 10px rgba(11, 37, 69, 0.05), 0 22px 48px rgba(11, 37, 69, 0.15);
+  --shadow-brand: 0 10px 24px -6px rgba(91, 180, 229, 0.6);
+  --shadow-accent: 0 10px 24px -6px rgba(31, 111, 209, 0.55);
+  --focus-ring: 0 0 0 4px rgba(91, 180, 229, 0.4);
+
+  /* ---- Typography ---- */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration: 0.25s;
+
+  /* ---- Layout ---- */
+  --nav-height: 76px;
+  --sidebar-width: 268px;
+  --sidebar-collapsed-width: 88px;
+  --topbar-height: 72px;
+
+  /* ---- Bootstrap bridge ---- */
+  --bs-body-font-family: var(--font-body);
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+  --bs-emphasis-color: var(--text);
+  --bs-heading-color: var(--text);
+  --bs-secondary-color: var(--text-muted);
+  --bs-tertiary-color: var(--text-subtle);
+  --bs-secondary-bg: var(--surface-muted);
+  --bs-tertiary-bg: var(--surface-alt);
+  --bs-border-color: var(--border-strong);
+  --bs-border-color-translucent: var(--border);
+  --bs-border-radius: var(--radius-sm);
+  --bs-border-radius-sm: 8px;
+  --bs-border-radius-lg: var(--radius-md);
+  --bs-border-radius-xl: var(--radius);
+  --bs-primary: var(--accent);
+  --bs-primary-rgb: 31, 111, 209;
+  --bs-danger: var(--danger);
+  --bs-danger-rgb: 229, 72, 77;
+  --bs-link-color: var(--brand-ink);
+  --bs-link-color-rgb: 21, 101, 166;
+  --bs-link-hover-color: var(--text);
+  --bs-link-hover-color-rgb: 11, 37, 69;
+  --bs-focus-ring-color: rgba(91, 180, 229, 0.4);
+  --bs-form-invalid-color: var(--danger-ink);
+  --bs-form-invalid-border-color: var(--danger);
+  --bs-form-valid-color: var(--brand-ink);
+  --bs-form-valid-border-color: var(--brand);
+}
+
+[data-theme='dark'] {
+  --brand-ink: #8fd0f4;
+  --brand-soft: rgba(91, 180, 229, 0.16);
+  --accent-ink: #8ab8f5;
+  --accent-soft: rgba(31, 111, 209, 0.22);
+  --amber-ink: #ffc970;
+  --amber-soft: rgba(245, 165, 36, 0.16);
+  --danger-ink: #ff8589;
+  --danger-soft: rgba(229, 72, 77, 0.18);
+  --success-ink: #7fdba5;
+  --success-soft: rgba(47, 158, 91, 0.2);
+
+  --bg: #061a30;
+  --surface: #0e2a47;
+  --surface-alt: #12365a;
+  --surface-muted: #0b2440;
+  --text: #e8f2fb;
+  --text-muted: #a5bdd3;
+  --text-subtle: #7d98b1;
+  --border: rgba(232, 242, 251, 0.08);
+  --border-strong: rgba(232, 242, 251, 0.16);
+  --section-dark: #04121f;
+  --sidebar-bg: linear-gradient(180deg, #0a2440 0%, #04121f 100%);
+  --nav-bg: rgba(6, 26, 48, 0.85);
+  --overlay: rgba(2, 10, 20, 0.7);
+  --chart-bar: #5bb4e5; /* validated ≥ 3:1 against the dark surface */
+  --chart-grid: rgba(232, 242, 251, 0.1);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.3), 0 22px 48px rgba(0, 0, 0, 0.45);
+
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+  --bs-emphasis-color: var(--text);
+  --bs-heading-color: var(--text);
+  --bs-secondary-color: var(--text-muted);
+  --bs-tertiary-color: var(--text-subtle);
+  --bs-secondary-bg: var(--surface-muted);
+  --bs-tertiary-bg: var(--surface-alt);
+  --bs-border-color: var(--border-strong);
+  --bs-border-color-translucent: var(--border);
+  --bs-link-color: var(--brand-ink);
+  --bs-link-color-rgb: 143, 208, 244;
+  --bs-link-hover-color: #ffffff;
+  --bs-link-hover-color-rgb: 255, 255, 255;
+  --bs-form-invalid-color: var(--danger-ink);
+  --bs-form-valid-color: var(--brand-ink);
+  color-scheme: dark;
+}

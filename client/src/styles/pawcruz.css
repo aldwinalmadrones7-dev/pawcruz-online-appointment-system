@@ -1,0 +1,623 @@
+/* pawcruz.css — Styles for the veterinary features: pet avatars and cards, the
+   vet picker, 10-minute slot grid, queue numbers, pet strips and admin vet cards. */
+
+/* ---------- Pet avatar (species icon) ---------- */
+.pet-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 32%;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+
+.pet-avatar.is-cat {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.pet-avatar.is-rabbit,
+.pet-avatar.is-small {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+
+.pet-avatar.is-bird,
+.pet-avatar.is-fish {
+  background: var(--success-soft);
+  color: var(--success-ink);
+}
+
+.pet-avatar.is-reptile,
+.pet-avatar.is-other {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+/* ---------- Pet card ---------- */
+.pet-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  height: 100%;
+  padding: 1.15rem 1.2rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease), border-color var(--duration) ease;
+}
+
+.pet-card.is-selectable:hover:not(.is-selected) {
+  transform: translateY(-3px);
+  border-color: var(--brand);
+  box-shadow: var(--shadow-md);
+}
+
+.pet-card.is-selected {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(91, 180, 229, 0.35), var(--shadow-md);
+}
+
+.pet-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pet-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.pet-card-title h3 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.pet-card-title span {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pet-check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border-strong);
+  border-radius: 9px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.pet-check.is-on {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.pet-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.pet-facts > div {
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+}
+
+.pet-facts dt {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.pet-facts dd {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.pet-notes {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.pet-next {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pet-next.is-booked {
+  color: var(--brand-ink);
+}
+
+.pet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: auto;
+}
+
+.pet-add-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 32%;
+  background: var(--brand);
+  color: var(--ink);
+  font-size: 1.3rem;
+}
+
+.add-pet-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  padding: 1rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  text-align: center;
+  transition: border-color var(--duration) ease, background-color var(--duration) ease;
+}
+
+.add-pet-tile:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.add-pet-tile small {
+  color: var(--text-muted);
+}
+
+/* ---------- Admin walk-in form ---------- */
+.pet-checklist {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pet-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.pet-check-row.is-on {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.pet-check-row input {
+  accent-color: var(--brand-strong);
+}
+
+.pet-check-row strong,
+.pet-check-row small {
+  display: block;
+}
+
+.pet-check-row small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.edit-pet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+}
+
+.edit-pet-head strong,
+.edit-pet-head small {
+  display: block;
+}
+
+.edit-pet-head small {
+  color: var(--text-muted);
+}
+
+/* ---------- Vet card extras + compact vet picker ---------- */
+.vet-shift {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.vet-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.vet-picker {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.vet-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  transition: border-color var(--duration) ease, background-color var(--duration) ease;
+}
+
+.vet-option:hover:not(.is-selected) {
+  border-color: var(--brand);
+}
+
+.vet-option.is-selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.vet-option-photo {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.vet-option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.vet-option-text strong,
+.vet-option-text small {
+  display: block;
+}
+
+.vet-option-text small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.vet-option-check {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.vet-option.is-selected .vet-option-check {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--ink);
+}
+
+/* ---------- 10-minute slots: compact chips in a scroll box ---------- */
+.slot-scroll {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.slot-picker .slot-grid {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.4rem;
+}
+
+.slot-picker .slot-btn {
+  min-height: 42px;
+}
+
+/* ---------- Queue numbers ---------- */
+.queue-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 78px;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: #fff;
+  line-height: 1.1;
+}
+
+[data-theme='dark'] .queue-badge {
+  background: var(--brand);
+  color: var(--ink);
+}
+
+.queue-badge small {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.queue-badge strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.queue-badge.is-large strong {
+  font-size: 1.9rem;
+}
+
+.queue-hero {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0 auto 1.25rem;
+  padding: 1rem 2.5rem;
+  border-radius: var(--radius-xl);
+  background: var(--section-dark);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}
+
+.queue-hero span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+.queue-hero strong {
+  font-size: clamp(2.6rem, 8vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.booking-success .reference-box {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ---------- Pet lists in review, success and cards ---------- */
+.review-pets {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.review-pets li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+  text-align: left;
+}
+
+.review-pets li > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-pets strong,
+.review-pets small {
+  display: block;
+}
+
+.review-pets small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.review-pets em {
+  font-style: normal;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.appointment-card-pet {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.7rem 0 0.5rem;
+}
+
+.appointment-card-pet .appointment-card-title {
+  margin: 0;
+}
+
+.appointment-card-pet small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.toolbar-select.is-narrow {
+  flex-basis: 160px;
+}
+
+/* ---------- Owner dashboard ---------- */
+.next-main .queue-badge {
+  margin-left: auto;
+  align-self: flex-start;
+}
+
+.next-pet {
+  border-radius: 26px;
+}
+
+.pet-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.75rem;
+}
+
+.pet-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.pet-chip:hover {
+  color: var(--text);
+  border-color: var(--brand);
+}
+
+.pet-chip > span:last-child {
+  min-width: 0;
+}
+
+.pet-chip strong,
+.pet-chip small,
+.pet-chip em {
+  display: block;
+}
+
+.pet-chip small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-chip em {
+  font-style: normal;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+}
+
+.pet-chip.is-add {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+@media (max-width: 575.98px) {
+  .next-main {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- Appointment detail ---------- */
+.detail-header-main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ---------- Admin ---------- */
+.admin-vet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.admin-vet-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.duty-photo {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.duty-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1.1;
+}
+
+.duty-count strong {
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.duty-count small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+
+/* Compact admin table: tighter cells and an icon-only "more" menu */
+.pc-table.is-compact tbody td,
+.pc-table.is-compact thead th {
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+}
+
+.no-caret::after {
+  display: none !important;
+}
