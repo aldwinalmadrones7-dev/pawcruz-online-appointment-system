@@ -77,7 +77,7 @@ export default function ManagePatients() {
 
   return (
     <div>
-      <PageHeader eyebrow="Admin panel" title="Animal patients" subtitle="Every registered pet with its owner and visit summary. Pet records are read-only here — owners update them in their account." />
+      <PageHeader eyebrow="Veterinarian portal" title="Animal patients" subtitle="Every registered pet with its owner and visit summary. Pet records are read-only here — owners update them in their account." />
 
       <div className="pc-card">
         <div className="pc-card-body">

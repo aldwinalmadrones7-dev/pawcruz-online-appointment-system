@@ -18,7 +18,7 @@ import AuthLayout from './AuthLayout';
 
 const DEMO_ACCOUNTS = [
   { label: 'Pet owner demo', email: 'owner@pawcruz.ph', password: 'Owner123!' },
-  { label: 'Admin demo', email: 'admin@pawcruz.ph', password: 'Admin123!' },
+  { label: 'Veterinarian demo', email: 'redmond.lopez@pawcruz.ph', password: 'Vet12345!' },
 ];
 
 export default function Login() {
@@ -49,7 +49,7 @@ export default function Login() {
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Log in to book visits and manage your pets.">
+    <AuthLayout title="Welcome back" subtitle="Pet owners book visits and manage their pets; veterinarians run the live queue.">
       {from && (
         <Alert variant="soft" className="d-flex gap-2 align-items-center">
           <FiInfo aria-hidden="true" /> Please log in to continue.

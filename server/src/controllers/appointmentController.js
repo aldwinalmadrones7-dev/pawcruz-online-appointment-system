@@ -1,13 +1,14 @@
 /**
  * appointmentController.js — Appointments API, modelled on final-vet:
  * availability per vet (10-minute slots), booking one or more pets into back-to-back
- * slots with one vet, queue numbers, cancel, rebook, admin status changes, edits,
+ * slots with one vet, queue numbers, cancel, rebook, clinic (vet) status changes, edits,
  * deletes and dashboard stats. Every write re-checks the slot right before saving, and
  * the unique indexes on the Appointment model stop two requests from taking the same slot.
+ * The live queue itself (check-in → with the vet → completed) is in queueController.js.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
-import { isAdmin } from '../middleware/auth.js';
+import { isVet } from '../middleware/auth.js';
 import Appointment, { APPOINTMENT_POPULATE } from '../models/Appointment.js';
 import Pet from '../models/Pet.js';
 import Service from '../models/Service.js';
@@ -17,8 +18,12 @@ import { ACTIVE_STATUSES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_S
 import { getManilaToday, getWeekDateKeys, isDateTimePast } from '../shared/dateUtils.js';
 import { addMinutesToTime, buildAvailability, getVetWindow, SLOT_MINUTES } from '../shared/schedule.js';
 import ApiError from '../utils/ApiError.js';
+import { loadQueueBoard } from '../utils/queueBoard.js';
 
 const { CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const CHECKED_IN = "This pet is already checked in at the clinic, so the visit's time can't be changed now.";
+/** Clears the live-queue progress (e.g. when a finished or cancelled visit is reopened). */
+const QUEUE_RESET = { checkedInAt: null, servedAt: null, completedAt: null };
 const REFERENCE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I look-alikes
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -44,13 +49,19 @@ async function generateReference() {
   }
 }
 
-/** final-vet queue numbers: online visits "E-001" per day; walk-ins "#901" (hour + order in that hour). */
+/**
+ * final-vet queue numbers: online visits "E-001" per day; walk-ins "#901" (hour + order in that hour).
+ * The next number follows the highest one already given out, so a visit that was rebooked or
+ * cancelled never frees its number for someone else (the live queue board must not show duplicates).
+ */
 async function nextQueueNumber(source, date, startTime, excludeId = null) {
   const hour = Number(startTime.slice(0, 2));
-  const sameDay = await Appointment.find({ date, source }, 'visitId startTime').lean();
-  const sameQueue = sameDay.filter((a) => String(a._id) !== idString(excludeId) && (source === 'Online' || Number(a.startTime.slice(0, 2)) === hour));
-  const sequence = new Set(sameQueue.map((a) => a.visitId)).size + 1;
-  return source === 'Online' ? `E-${String(sequence).padStart(3, '0')}` : `#${hour % 12 || 12}${String(sequence).padStart(2, '0')}`;
+  const isOnline = source === 'Online';
+  const digits = isOnline ? 3 : 2;
+  const sameDay = await Appointment.find({ date, source }, 'queueNumber startTime').lean();
+  const sameQueue = sameDay.filter((a) => String(a._id) !== idString(excludeId) && (isOnline || Number(a.startTime.slice(0, 2)) === hour));
+  const sequence = Math.max(0, ...sameQueue.map((a) => Number(String(a.queueNumber).slice(-digits)) || 0)) + 1;
+  return isOnline ? `E-${String(sequence).padStart(digits, '0')}` : `#${hour % 12 || 12}${String(sequence).padStart(digits, '0')}`;
 }
 
 /** Plain vet objects with string ids, as the shared schedule rules expect. */
@@ -88,7 +99,7 @@ async function resolvePets(rawIds, user) {
   if (pets.some((p) => !p)) throw new ApiError('One of the selected pets no longer exists.', 404, 'petIds');
   const ownerId = String(pets[0].ownerId);
   if (pets.some((p) => String(p.ownerId) !== ownerId)) throw new ApiError('All pets in one visit must belong to the same owner.', 400, 'petIds');
-  if (!isAdmin(user) && ownerId !== String(user._id)) throw new ApiError('Pet not found.', 404, 'petIds');
+  if (!isVet(user) && ownerId !== String(user._id)) throw new ApiError('Pet not found.', 404, 'petIds');
   return { pets, ownerId };
 }
 
@@ -119,7 +130,7 @@ async function assertService(serviceId) {
 /** Finds an appointment the user may access. Other owners' records look "not found". */
 async function findAccessible(id, user) {
   const appointment = await Appointment.findById(id);
-  if (!appointment || (!isAdmin(user) && String(appointment.ownerId) !== String(user._id))) {
+  if (!appointment || (!isVet(user) && String(appointment.ownerId) !== String(user._id))) {
     throw new ApiError('Appointment not found.', 404);
   }
   return appointment;
@@ -134,7 +145,7 @@ async function saveAndPopulate(appointment, changes) {
 
 // ---- Reads ------------------------------------------------------------------------
 
-/** GET /api/appointments (admin) — optional filters: status, date, vetId, ownerId, petId, source. */
+/** GET /api/appointments (vet) — optional filters: status, date, vetId, ownerId, petId, source. */
 export async function getAppointments(req, res) {
   const filter = {};
   for (const key of ['status', 'date', 'source']) if (req.query[key]) filter[key] = String(req.query[key]);
@@ -176,19 +187,21 @@ export async function getAvailability(req, res) {
 
 /**
  * POST /api/appointments — books one or more pets into back-to-back 10-minute slots with one vet.
- * Pet owners always book "Online"; admins register "Walk-In" bookings for an owner's pets.
+ * Pet owners always book "Online"; vets register "Walk-In" bookings for an owner's pets and can
+ * check a pet that is already at the clinic straight into today's live queue (checkIn: true).
  * → 201 { reference, queueNumber, appointments }
  */
 export async function createAppointment(req, res) {
   const { petIds, vetId, date, startTime, serviceId, notes = '', source } = req.body;
   const { pets, ownerId } = await resolvePets(petIds, req.user);
   const service = await assertService(serviceId);
-  const visitSource = isAdmin(req.user) && APPOINTMENT_SOURCES.includes(source) ? source : 'Online';
+  const visitSource = isVet(req.user) && APPOINTMENT_SOURCES.includes(source) ? source : 'Online';
   await assertBookable({ date, startTime, vetId, petIds: pets.map((p) => String(p._id)) });
 
   const reference = await generateReference();
   const visitId = randomUUID();
   const queueNumber = await nextQueueNumber(visitSource, date, startTime);
+  const checkedInAt = isVet(req.user) && req.body.checkIn === true && date === getManilaToday() ? new Date() : null;
   const rows = pets.map((pet, index) => {
     const petStart = addMinutesToTime(startTime, index * SLOT_MINUTES);
     return {
@@ -206,6 +219,7 @@ export async function createAppointment(req, res) {
       status: CONFIRMED,
       notes: text(notes, 500),
       price: service.price,
+      checkedInAt,
     };
   });
 
@@ -228,9 +242,10 @@ export async function rescheduleAppointment(req, res) {
   const { date, startTime, vetId } = req.body;
   const appointment = await findAccessible(req.params.id, req.user);
   if (!isUpcomingActive(appointment)) throw new ApiError('Only upcoming confirmed appointments can be rebooked.', 400);
-  if (!isAdmin(req.user) && appointment.source !== 'Online') {
+  if (!isVet(req.user) && appointment.source !== 'Online') {
     throw new ApiError('Walk-in visits can only be rebooked at the front desk.', 403);
   }
+  if (appointment.checkedInAt) throw new ApiError(CHECKED_IN, 409);
   await assertBookable({ date, startTime, vetId, petIds: [String(appointment.petId)], excludeAppointmentId: appointment._id });
   res.json(
     await saveAndPopulate(appointment, {
@@ -248,19 +263,22 @@ export async function rescheduleAppointment(req, res) {
 export async function cancelAppointment(req, res) {
   const appointment = await findAccessible(req.params.id, req.user);
   if (!ACTIVE_STATUSES.includes(appointment.status)) throw new ApiError('This appointment can no longer be cancelled.', 400);
-  if (!isAdmin(req.user) && isDateTimePast(appointment.date, appointment.startTime)) {
+  if (!isVet(req.user) && isDateTimePast(appointment.date, appointment.startTime)) {
     throw new ApiError('Past appointments cannot be cancelled.', 400);
+  }
+  if (!isVet(req.user) && appointment.servedAt) {
+    throw new ApiError("Your pet is already with the vet, so this visit can't be cancelled now.", 400);
   }
   res.json(
     await saveAndPopulate(appointment, {
       status: CANCELLED,
       cancelReason: text(req.body.reason, 200),
-      cancelledBy: isAdmin(req.user) ? 'clinic' : 'owner',
+      cancelledBy: isVet(req.user) ? 'clinic' : 'owner',
     }),
   );
 }
 
-/** PATCH /api/appointments/:id/status (admin) — mark completed or cancel. */
+/** PATCH /api/appointments/:id/status (vet) — mark completed or cancel. */
 export async function updateAppointmentStatus(req, res) {
   const status = String(req.body.status ?? '');
   const appointment = await Appointment.findById(req.params.id);
@@ -272,6 +290,7 @@ export async function updateAppointmentStatus(req, res) {
     throw new ApiError('Visits can only be marked completed on or after their date.', 400);
   }
   const changes = { status };
+  if (status === COMPLETED) changes.completedAt = new Date();
   if (status === CANCELLED) {
     changes.cancelReason = text(req.body.reason, 200) || 'Cancelled by the clinic';
     changes.cancelledBy = 'clinic';
@@ -279,7 +298,7 @@ export async function updateAppointmentStatus(req, res) {
   res.json(await saveAndPopulate(appointment, changes));
 }
 
-/** PUT /api/appointments/:id (admin) — edit reason, notes, source, status and (for upcoming visits) the schedule. */
+/** PUT /api/appointments/:id (vet) — edit reason, notes, source, status and (for upcoming visits) the schedule. */
 export async function updateAppointment(req, res) {
   const data = req.body;
   const current = await Appointment.findById(req.params.id);
@@ -296,6 +315,7 @@ export async function updateAppointment(req, res) {
   };
   const scheduleChanged = next.date !== current.date || next.startTime !== current.startTime || next.vetId !== String(current.vetId);
   const reactivated = ACTIVE_STATUSES.includes(status) && !ACTIVE_STATUSES.includes(current.status);
+  if (scheduleChanged && !reactivated && current.checkedInAt && ACTIVE_STATUSES.includes(current.status)) throw new ApiError(CHECKED_IN, 409);
   if (ACTIVE_STATUSES.includes(status) && (scheduleChanged || reactivated)) {
     await assertBookable({ ...next, petIds: [String(current.petId)], excludeAppointmentId: current._id });
   }
@@ -321,10 +341,13 @@ export async function updateAppointment(req, res) {
     changes.cancelledBy = '';
     changes.cancelReason = '';
   }
+  // A reopened visit starts the live queue again; a newly completed one gets its finish time.
+  if (reactivated) Object.assign(changes, QUEUE_RESET);
+  else if (status === COMPLETED && current.status !== COMPLETED) changes.completedAt = new Date();
   res.json(await saveAndPopulate(current, changes));
 }
 
-/** DELETE /api/appointments/:id (admin) */
+/** DELETE /api/appointments/:id (vet) */
 export async function deleteAppointment(req, res) {
   const deleted = await Appointment.findByIdAndDelete(req.params.id);
   if (!deleted) throw new ApiError('Appointment not found.', 404);
@@ -333,12 +356,12 @@ export async function deleteAppointment(req, res) {
 
 // ---- Dashboard ----------------------------------------------------------------------
 
-/** GET /api/appointments/stats (admin) — totals, today's schedule, vets on duty, this week per day. */
+/** GET /api/appointments/stats (vet) — totals, today's schedule and queue, vets on duty, this week per day. */
 export async function getDashboardStats(req, res) {
   const today = getManilaToday();
   const monthPrefix = today.slice(0, 7);
   const week = getWeekDateKeys(today);
-  const [totals, todays, upcomingCandidates, completedThisMonth, registeredPets, weekRows, vets] = await Promise.all([
+  const [totals, todays, upcomingCandidates, completedThisMonth, registeredPets, weekRows, vets, board] = await Promise.all([
     Appointment.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     Appointment.find({ date: today }).populate(APPOINTMENT_POPULATE),
     Appointment.find({ status: CONFIRMED, date: { $gte: today } }, 'date startTime').lean(),
@@ -349,6 +372,7 @@ export async function getDashboardStats(req, res) {
       { $group: { _id: '$date', count: { $sum: 1 } } },
     ]),
     loadVets(),
+    loadQueueBoard(),
   ]);
   const countOf = (status) => totals.find((t) => t._id === status)?.count ?? 0;
   const todaysSorted = todays.sort(compareByDateTime);
@@ -365,23 +389,26 @@ export async function getDashboardStats(req, res) {
     upcomingConfirmed: upcomingCandidates.filter((a) => !isDateTimePast(a.date, a.startTime)).length,
     completedThisMonth,
     registeredPets,
+    queue: board.totals,
     vetsOnDuty: vets
       .filter((vet) => getVetWindow(vet, today))
       .map((vet) => ({
         ...vet,
         appointmentsToday: todaysSorted.filter((a) => String(a.vetId) === vet.id && a.status !== CANCELLED).length,
+        waiting: board.lanes.find((lane) => lane.vet.id === vet.id)?.waiting.length ?? 0,
       }))
       .sort((a, b) => a.shiftStart.localeCompare(b.shiftStart)),
     week: week.map((date) => ({ date, count: weekRows.find((row) => row._id === date)?.count ?? 0, isToday: date === today })),
   });
 }
 
-/** GET /api/appointments/counts — small numbers for the sidebar badges. */
+/** GET /api/appointments/counts — small numbers for the sidebar badges (vets also get who is waiting in the queue). */
 export async function getAppointmentCounts(req, res) {
   const today = getManilaToday();
   const filter = { status: { $in: ACTIVE_STATUSES }, date: { $gte: today } };
-  if (!isAdmin(req.user)) filter.ownerId = req.user._id;
+  if (!isVet(req.user)) filter.ownerId = req.user._id;
   const upcoming = (await Appointment.find(filter, 'date startTime').lean()).filter((a) => !isDateTimePast(a.date, a.startTime));
-  if (isAdmin(req.user)) return res.json({ today: upcoming.filter((a) => a.date === today).length });
-  res.json({ upcoming: upcoming.length });
+  if (!isVet(req.user)) return res.json({ upcoming: upcoming.length });
+  const board = await loadQueueBoard();
+  res.json({ today: upcoming.filter((a) => a.date === today).length, waiting: board.totals.waiting });
 }

@@ -1,6 +1,7 @@
 /**
- * Owner Dashboard — Welcome banner, visit stats, the next appointment with its queue
- * number and a live countdown, the owner's pets, quick actions and a pet-care tip.
+ * Owner Dashboard — Welcome banner, today's live queue status (place in line and estimated
+ * wait), visit stats, the next appointment with its queue number and a live countdown, the
+ * owner's pets, quick actions and a pet-care tip.
  */
 import { useMemo } from 'react';
 import { Button, Col, Row } from 'react-bootstrap';
@@ -11,16 +12,19 @@ import { PawIcon, SparkleIcon } from '../../components/BrandIcons';
 import CountdownTimer from '../../components/CountdownTimer';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MyQueueTickets from '../../components/MyQueueTickets';
 import PetAvatar from '../../components/PetAvatar';
 import StatCard from '../../components/StatCard';
 import StatusBadge from '../../components/StatusBadge';
 import { PET_CARE_TIPS } from '../../data/siteContent';
 import useAsync from '../../hooks/useAsync';
 import useAuth from '../../hooks/useAuth';
+import usePolling from '../../hooks/usePolling';
 import { getMyAppointments } from '../../services/appointmentService';
 import { getMyPets } from '../../services/petService';
+import { getMyQueue } from '../../services/queueService';
 import { compareByDateTime, isUpcoming } from '../../utils/appointmentRules';
-import { APPOINTMENT_STATUS, CLINIC_INFO } from '../../utils/constants';
+import { APPOINTMENT_STATUS, CLINIC_INFO, QUEUE_REFRESH_MS } from '../../utils/constants';
 import { getManilaToday, parseDateKey, toManilaDateTime } from '../../utils/dateUtils';
 import { describePet, formatDateLong, formatDateShort, formatRelativeDay, formatTime, formatTimeRange, formatVetName, getGreeting } from '../../utils/formatters';
 
@@ -30,6 +34,25 @@ const QUICK_ACTIONS = [
   { to: '/owner/appointments', icon: FiCalendar, title: 'Appointments', text: 'Rebook or cancel' },
   { href: `tel:${CLINIC_INFO.phones[0]}`, icon: FiPhone, title: 'Call the clinic', text: CLINIC_INFO.phones[0] },
 ];
+
+/** Today's visits in the clinic's live queue: place in line and estimated wait (refreshes itself). */
+function TodayQueueCard() {
+  const { data } = usePolling(() => getMyQueue(), QUEUE_REFRESH_MS);
+  if (!data?.tickets.length) return null;
+  return (
+    <div className="pc-card mb-4">
+      <div className="pc-card-body">
+        <div className="card-title-row">
+          <h2>Today’s queue</h2>
+          <Link to="/queue" className="fw-bold small">
+            See the live board
+          </Link>
+        </div>
+        <MyQueueTickets tickets={data.tickets} today={data.date} />
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -77,6 +100,8 @@ export default function Dashboard() {
           <FiPlusCircle aria-hidden="true" /> Book appointment
         </Button>
       </section>
+
+      <TodayQueueCard />
 
       {loading ? (
         <LoadingSpinner label="Loading your pets and visits…" />

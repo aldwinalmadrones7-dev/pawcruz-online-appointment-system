@@ -1,6 +1,6 @@
 /**
- * App — All routes. Public pages use PublicLayout; /owner/* and /admin/* are
- * protected (login required) and role-checked, and their pages load on demand.
+ * App — All routes. Public pages use PublicLayout; /owner/* (pet owners) and /vet/*
+ * (veterinarians) are protected (login required) and role-checked, and their pages load on demand.
  */
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
@@ -15,6 +15,7 @@ import PublicLayout from './layouts/PublicLayout';
 import About from './pages/public/About';
 import Contact from './pages/public/Contact';
 import Home from './pages/public/Home';
+import LiveQueuePage from './pages/public/LiveQueuePage';
 import Login from './pages/public/Login';
 import NotFound from './pages/public/NotFound';
 import Register from './pages/public/Register';
@@ -29,12 +30,12 @@ const MyPets = lazy(() => import('./pages/owner/MyPets'));
 const BookAppointment = lazy(() => import('./pages/owner/BookAppointment'));
 const MyAppointments = lazy(() => import('./pages/owner/MyAppointments'));
 const AppointmentDetail = lazy(() => import('./pages/owner/AppointmentDetail'));
-const Profile = lazy(() => import('./pages/owner/Profile'));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const ManageAppointments = lazy(() => import('./pages/admin/ManageAppointments'));
-const ManageVets = lazy(() => import('./pages/admin/ManageVets'));
-const ManageServices = lazy(() => import('./pages/admin/ManageServices'));
-const ManagePatients = lazy(() => import('./pages/admin/ManagePatients'));
+const Profile = lazy(() => import('./pages/account/Profile'));
+const VetDashboard = lazy(() => import('./pages/vet/VetDashboard'));
+const LiveQueue = lazy(() => import('./pages/vet/LiveQueue'));
+const ManageAppointments = lazy(() => import('./pages/vet/ManageAppointments'));
+const ManageServices = lazy(() => import('./pages/vet/ManageServices'));
+const ManagePatients = lazy(() => import('./pages/vet/ManagePatients'));
 
 export default function App() {
   const { theme } = useTheme();
@@ -44,9 +45,11 @@ export default function App() {
       <ScrollToTop />
       <Suspense fallback={<LoadingSpinner fullPage label="Loading…" />}>
         <Routes>
-          {/* Login and register are full-screen pages without the site navbar and footer. */}
+          {/* Login and register are full-screen pages without the site navbar and footer;
+              the live queue page fits the screen under the navbar (no footer, no scrolling). */}
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="queue" element={<LiveQueuePage />} />
 
           <Route element={<PublicLayout />}>
             <Route index element={<Home />} />
@@ -71,14 +74,15 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN]} />}>
-              <Route path="admin" element={<DashboardLayout />}>
+            <Route element={<RoleRoute allowedRoles={[ROLES.VET]} />}>
+              <Route path="vet" element={<DashboardLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="dashboard" element={<VetDashboard />} />
+                <Route path="queue" element={<LiveQueue />} />
                 <Route path="appointments" element={<ManageAppointments />} />
-                <Route path="vets" element={<ManageVets />} />
-                <Route path="services" element={<ManageServices />} />
                 <Route path="patients" element={<ManagePatients />} />
+                <Route path="services" element={<ManageServices />} />
+                <Route path="profile" element={<Profile />} />
               </Route>
             </Route>
           </Route>

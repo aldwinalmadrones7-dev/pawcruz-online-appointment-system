@@ -15,9 +15,18 @@ export const CLINIC_INFO = {
   mapUrl: 'https://www.google.com/maps/search/?api=1&query=Felimarc+Pet+Center+A.+Luna+St+Pasay+City',
 };
 
+/** The two kinds of accounts. Vets also run the clinic side: the live queue, walk-ins and services. */
 export const ROLES = {
-  OWNER: 'owner', // pet owner (the "patient" account)
-  ADMIN: 'admin', // clinic admin / front desk
+  OWNER: 'owner', // pet owner (books visits for their pets)
+  VET: 'vet', // veterinarian
+};
+
+/** Account types offered on the Create account page. */
+export const ACCOUNT_ROLES = Object.values(ROLES);
+
+export const ROLE_LABELS = {
+  [ROLES.OWNER]: 'Pet owner',
+  [ROLES.VET]: 'Veterinarian',
 };
 
 export const APPOINTMENT_STATUS = {
@@ -32,6 +41,23 @@ export const APPOINTMENT_STATUSES = Object.values(APPOINTMENT_STATUS);
 export const ACTIVE_STATUSES = [APPOINTMENT_STATUS.CONFIRMED];
 
 export const APPOINTMENT_SOURCES = ['Online', 'Walk-In'];
+
+/**
+ * Where a visit is in the live clinic queue on its day (final-vet's queue): Expected (booked,
+ * not here yet) → Waiting (checked in on arrival) → Serving (with the vet) → Done.
+ */
+export const QUEUE_STAGE = {
+  EXPECTED: 'Expected',
+  WAITING: 'Waiting',
+  SERVING: 'Serving',
+  DONE: 'Done',
+};
+
+/** Checking in more than this many minutes after the booked time flags a late arrival. */
+export const LATE_ARRIVAL_MINUTES = 15;
+
+/** How often the live queue boards refresh themselves. */
+export const QUEUE_REFRESH_MS = 15000;
 
 /** Every booking is a general consultation; the reason for visit is picked from the services list. */
 export const CONSULTATION_TYPE = 'General Consultation';

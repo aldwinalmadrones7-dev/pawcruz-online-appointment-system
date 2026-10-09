@@ -62,8 +62,13 @@ export const FAQS = [
     answer: 'We are open Monday to Sunday, 9:00 AM to 7:00 PM. Appointments run in 10-minute intervals, and the last slot starts at 6:50 PM.',
   },
   {
+    question: 'How does the live queue work?',
+    answer:
+      'When you arrive, check in at the front desk with your queue number and you join your vet’s waiting line. Each vet sees one patient at a time, in the order of booked times. If you arrive more than 15 minutes late, you queue from the time you check in. The Live Queue page (in the menu) shows who is with each vet, who is next and the estimated wait. It only shows queue numbers and pet names.',
+  },
+  {
     question: 'Do you accept walk-ins?',
-    answer: 'Yes. Walk-ins get a queue number at the front desk, but booking online guarantees your slot and keeps your wait short.',
+    answer: 'Yes. Walk-ins get a queue number at the front desk and join the live queue right away, but booking online guarantees your slot and keeps your wait short.',
   },
   {
     question: 'What if my pet has an emergency?',

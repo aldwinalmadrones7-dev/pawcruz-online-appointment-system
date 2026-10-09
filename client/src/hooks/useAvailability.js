@@ -1,7 +1,7 @@
 /**
  * useAvailability — Loads a date's availability (final-vet style "slot map"):
  * which vets are on duty, their free start times, and every time slot of the day.
- * Shared by the booking wizard, the rebook modal and the admin appointment form.
+ * Shared by the booking wizard, the rebook modal and the clinic appointment form.
  */
 import { getAvailability } from '../services/appointmentService';
 import useAsync from './useAsync';

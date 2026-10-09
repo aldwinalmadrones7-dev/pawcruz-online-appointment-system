@@ -1,15 +1,16 @@
 /**
- * Navbar — Public site navigation with the dark-mode toggle. Guests see
- * "Log in" and "Book Now"; logged-in users get a menu that depends on their role.
+ * Navbar — Public site navigation with the dark-mode toggle and a "Live Queue" link to the
+ * live queue page. Guests see "Log in" and "Book Now"; logged-in pet owners and
+ * veterinarians get a menu for their own portal.
  */
 import { useState } from 'react';
 import { Navbar as BsNavbar, Button, Container, Dropdown, Nav } from 'react-bootstrap';
-import { FiCalendar, FiGrid, FiHeart, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiGrid, FiHeart, FiLogOut, FiUser, FiUsers } from 'react-icons/fi';
 import { Link, NavLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import useAuth from '../hooks/useAuth';
 import { ROLES } from '../utils/constants';
-import { getFullName } from '../utils/formatters';
+import { getDisplayName, getFullName } from '../utils/formatters';
 import { getDashboardPath } from '../utils/routes';
 import Avatar from './Avatar';
 import BrandLogo from './BrandLogo';
@@ -23,6 +24,19 @@ const LINKS = [
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ];
+
+const MENU = {
+  [ROLES.OWNER]: [
+    { to: '/owner/appointments', label: 'My appointments', icon: FiCalendar },
+    { to: '/owner/pets', label: 'My pets', icon: FiHeart },
+    { to: '/owner/profile', label: 'Profile', icon: FiUser },
+  ],
+  [ROLES.VET]: [
+    { to: '/vet/queue', label: 'Live queue', icon: FiUsers },
+    { to: '/vet/appointments', label: 'Appointments', icon: FiCalendar },
+    { to: '/vet/profile', label: 'Profile & schedule', icon: FiUser },
+  ],
+};
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -55,6 +69,12 @@ export default function Navbar() {
                   {link.label}
                 </Nav.Link>
               ))}
+              <Nav.Link as={NavLink} to="/queue" onClick={close} className="nav-live">
+                <span className="nav-live-dot" aria-hidden="true" />
+                <span>
+                  <span className="nav-live-word">Live </span>Queue
+                </span>
+              </Nav.Link>
             </Nav>
 
             <div className="nav-actions">
@@ -72,25 +92,17 @@ export default function Navbar() {
                     </Dropdown.Toggle>
                     <Dropdown.Menu>
                       <Dropdown.Header>
-                        <strong className="d-block text-body">{getFullName(user)}</strong>
+                        <strong className="d-block text-body">{getDisplayName(user)}</strong>
                         <small>{user.email}</small>
                       </Dropdown.Header>
                       <Dropdown.Item as={Link} to={getDashboardPath(user.role)} onClick={close}>
-                        <FiGrid aria-hidden="true" /> {isOwner ? 'My dashboard' : 'Admin panel'}
+                        <FiGrid aria-hidden="true" /> {isOwner ? 'My dashboard' : 'Vet portal'}
                       </Dropdown.Item>
-                      {isOwner && (
-                        <>
-                          <Dropdown.Item as={Link} to="/owner/appointments" onClick={close}>
-                            <FiCalendar aria-hidden="true" /> My appointments
-                          </Dropdown.Item>
-                          <Dropdown.Item as={Link} to="/owner/pets" onClick={close}>
-                            <FiHeart aria-hidden="true" /> My pets
-                          </Dropdown.Item>
-                          <Dropdown.Item as={Link} to="/owner/profile" onClick={close}>
-                            <FiUser aria-hidden="true" /> Profile
-                          </Dropdown.Item>
-                        </>
-                      )}
+                      {(MENU[user.role] ?? []).map(({ to, label, icon: Icon }) => (
+                        <Dropdown.Item key={to} as={Link} to={to} onClick={close}>
+                          <Icon aria-hidden="true" /> {label}
+                        </Dropdown.Item>
+                      ))}
                       <Dropdown.Divider />
                       <Dropdown.Item as="button" className="text-danger" onClick={() => setConfirmLogout(true)}>
                         <FiLogOut aria-hidden="true" /> Log out
@@ -116,7 +128,7 @@ export default function Navbar() {
       <ConfirmModal
         show={confirmLogout}
         title="Log out of PawCruz?"
-        message="You'll need to log in again to book or manage your pets' appointments."
+        message={isOwner ? "You'll need to log in again to book or manage your pets' appointments." : "You'll need to log in again to run the queue and manage the clinic."}
         confirmLabel="Yes, log out"
         icon={FiLogOut}
         onConfirm={handleLogout}
