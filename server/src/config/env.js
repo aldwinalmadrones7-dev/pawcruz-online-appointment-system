@@ -8,8 +8,10 @@ try {
   // No .env file: rely on real environment variables (e.g. on a hosting service).
 }
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+
 const env = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   port: Number(process.env.PORT) || 5000,
   mongoUri: process.env.MONGODB_URI || '',
   jwtSecret: process.env.JWT_SECRET || '',
@@ -19,6 +21,9 @@ const env = {
     .map((url) => url.trim())
     .filter(Boolean),
   allowDemoReset: process.env.ALLOW_DEMO_RESET === 'true',
+  // Code a veterinarian must enter to create a vet account (vets can see every pet owner's details).
+  // Development falls back to the demo code; in production vet sign-up stays closed until it is set.
+  vetSignupCode: (process.env.VET_SIGNUP_CODE ?? (nodeEnv === 'production' ? '' : 'PAWCRUZ-VET')).trim(),
   // Optional DNS servers for Atlas lookups, e.g. "8.8.8.8,1.1.1.1" (see config/db.js).
   dnsServers: (process.env.DNS_SERVERS || '')
     .split(',')

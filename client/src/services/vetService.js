@@ -1,10 +1,10 @@
 /**
- * vetService.js — Veterinarians API: public listing/details plus admin create, update
- * and delete (profile, PRC license, working days and shift hours).
+ * vetService.js — Veterinarians API: the public listing and profiles, plus a logged-in vet's
+ * own profile (specialty, PRC license, bio, duty days and shift hours — these drive the booking slots).
  */
 import axiosClient from '../api/axiosClient';
 
-/** GET /vets */
+/** GET /vets — vets with a schedule (new vets appear once they set their duty days). */
 export async function getVets() {
   const { data } = await axiosClient.get('/vets');
   return data;
@@ -16,20 +16,14 @@ export async function getVetById(id) {
   return data;
 }
 
-/** POST /vets (admin) */
-export async function createVet(vet) {
-  const { data } = await axiosClient.post('/vets', vet);
+/** GET /vets/me (vet) — my own vet profile. */
+export async function getMyVetProfile() {
+  const { data } = await axiosClient.get('/vets/me');
   return data;
 }
 
-/** PUT /vets/:id (admin) — booked visits keep their times; new hours apply to new bookings. */
-export async function updateVet(id, vet) {
-  const { data } = await axiosClient.put(`/vets/${id}`, vet);
-  return data;
-}
-
-/** DELETE /vets/:id (admin) — blocked while the vet still has upcoming visits. */
-export async function deleteVet(id) {
-  const { data } = await axiosClient.delete(`/vets/${id}`);
+/** PUT /vets/me (vet) — booked visits keep their times; new hours apply to new bookings. */
+export async function updateMyVetProfile(profile) {
+  const { data } = await axiosClient.put('/vets/me', profile);
   return data;
 }

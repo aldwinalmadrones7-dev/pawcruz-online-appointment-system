@@ -1,6 +1,8 @@
 /**
  * Appointment — One pet's 10-minute slot with one vet. A multi-pet visit is several
  * appointments that share a `visitId`, booking `reference` and `queueNumber`.
+ * On the visit day it moves through the live queue: checkedInAt (arrived, waiting) →
+ * servedAt (with the vet) → completedAt (status Completed).
  * Two partial unique indexes stop double-booking inside the database itself: a vet (or a
  * pet) can never have two Confirmed appointments starting at the same date and time.
  */
@@ -28,6 +30,9 @@ const appointmentSchema = new mongoose.Schema(
     price: { type: Number, default: 0 }, // the service's price at booking time
     cancelReason: { type: String, default: '', maxlength: 200 },
     cancelledBy: { type: String, enum: ['', 'owner', 'clinic'], default: '' },
+    checkedInAt: { type: Date, default: null }, // arrived and checked in → waiting in the live queue
+    servedAt: { type: Date, default: null }, // called in by the vet → being served
+    completedAt: { type: Date, default: null }, // consultation finished
   },
   { timestamps: true },
 );

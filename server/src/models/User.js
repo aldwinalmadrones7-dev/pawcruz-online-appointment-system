@@ -1,6 +1,6 @@
 /**
- * User — Pet-owner and admin accounts. Passwords are hashed with bcrypt before saving
- * and are never returned (select: false + the toJSON plugin).
+ * User — Pet-owner and veterinarian accounts (a vet's public profile is a Vet linked by userId).
+ * Passwords are hashed with bcrypt before saving and are never returned (select: false + the toJSON plugin).
  */
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';

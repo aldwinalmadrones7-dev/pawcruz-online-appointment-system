@@ -2,6 +2,8 @@
  * auth.js — JWT middleware.
  *   protect      → requires "Authorization: Bearer <token>" and loads req.user (401 otherwise)
  *   authorize(…) → allows only the listed roles (403 otherwise)
+ *   vetOnly      → veterinarians (they also run the clinic side: queue, walk-ins, services)
+ *   ownerOnly    → pet owners
  */
 import User from '../models/User.js';
 import { ROLES } from '../shared/constants.js';
@@ -35,7 +37,8 @@ export const authorize =
     next();
   };
 
-export const adminOnly = authorize(ROLES.ADMIN);
+export const vetOnly = authorize(ROLES.VET);
 export const ownerOnly = authorize(ROLES.OWNER);
 
-export const isAdmin = (user) => user?.role === ROLES.ADMIN;
+/** Veterinarians act for the clinic: they can see and manage every owner's pets and visits. */
+export const isVet = (user) => user?.role === ROLES.VET;

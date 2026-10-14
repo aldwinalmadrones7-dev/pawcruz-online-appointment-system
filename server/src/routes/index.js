@@ -1,6 +1,6 @@
 /**
  * routes/index.js — Every API route, mounted under /api by app.js.
- * protect = must be logged in (valid JWT); adminOnly = role "admin".
+ * protect = must be logged in (valid JWT); vetOnly = role "vet"; ownerOnly = role "owner".
  */
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -10,14 +10,16 @@ import * as contact from '../controllers/contactController.js';
 import * as demo from '../controllers/demoController.js';
 import * as patients from '../controllers/patientController.js';
 import * as pets from '../controllers/petController.js';
+import * as queue from '../controllers/queueController.js';
 import * as services from '../controllers/serviceController.js';
 import * as vets from '../controllers/vetController.js';
-import { adminOnly, protect } from '../middleware/auth.js';
+import { ownerOnly, protect, vetOnly } from '../middleware/auth.js';
 
 const router = Router();
 
 // Slow down password guessing and sign-up spam: 20 failed tries per 15 minutes per IP address
-// (successful logins don't count, so a busy front desk is never locked out).
+// (successful logins don't count, so a busy front desk is never locked out). Wrong veterinarian
+// sign-up codes count as failed tries too.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -33,6 +35,15 @@ const contactLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: 'Too many messages. Please try again later.', field: null },
 });
+// The public queue board refreshes every 15 seconds (4 times a minute per open page); this only
+// stops a runaway script, even when a whole classroom shares one IP address.
+const queueLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'The queue board is refreshing too often. Please wait a moment.', field: null },
+});
 
 router.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
@@ -45,7 +56,7 @@ router.put('/auth/password', protect, auth.changePassword);
 
 // ---- Pets --------------------------------------------------------------------------
 router.get('/pets/mine', protect, pets.getMyPets);
-router.get('/pets', protect, adminOnly, pets.getPets);
+router.get('/pets', protect, vetOnly, pets.getPets);
 router.post('/pets', protect, pets.createPet);
 router.put('/pets/:id', protect, pets.updatePet);
 router.delete('/pets/:id', protect, pets.deletePet);
@@ -53,36 +64,44 @@ router.delete('/pets/:id', protect, pets.deletePet);
 // ---- Appointments (fixed paths before /:id) -----------------------------------------
 router.get('/appointments/availability', protect, appointments.getAvailability);
 router.get('/appointments/mine', protect, appointments.getMyAppointments);
-router.get('/appointments/stats', protect, adminOnly, appointments.getDashboardStats);
+router.get('/appointments/stats', protect, vetOnly, appointments.getDashboardStats);
 router.get('/appointments/counts', protect, appointments.getAppointmentCounts);
-router.get('/appointments', protect, adminOnly, appointments.getAppointments);
+router.get('/appointments', protect, vetOnly, appointments.getAppointments);
 router.post('/appointments', protect, appointments.createAppointment);
 router.get('/appointments/:id', protect, appointments.getAppointmentById);
-router.put('/appointments/:id', protect, adminOnly, appointments.updateAppointment);
+router.put('/appointments/:id', protect, vetOnly, appointments.updateAppointment);
 router.patch('/appointments/:id/rebook', protect, appointments.rescheduleAppointment);
 router.patch('/appointments/:id/cancel', protect, appointments.cancelAppointment);
-router.patch('/appointments/:id/status', protect, adminOnly, appointments.updateAppointmentStatus);
-router.delete('/appointments/:id', protect, adminOnly, appointments.deleteAppointment);
+router.patch('/appointments/:id/status', protect, vetOnly, appointments.updateAppointmentStatus);
+router.delete('/appointments/:id', protect, vetOnly, appointments.deleteAppointment);
 
-// ---- Veterinarians -------------------------------------------------------------------
+// ---- Live queue (check-in → with the vet → completed) -----------------------------------
+router.get('/queue', queueLimiter, queue.getPublicQueue);
+router.get('/queue/mine', protect, ownerOnly, queue.getMyQueue);
+router.get('/queue/manage', protect, vetOnly, queue.getManageQueue);
+router.patch('/queue/:visitId/check-in', protect, vetOnly, queue.checkIn);
+router.patch('/queue/:visitId/call', protect, vetOnly, queue.callIn);
+router.patch('/queue/:visitId/complete', protect, vetOnly, queue.completeVisit);
+router.patch('/queue/:visitId/undo', protect, vetOnly, queue.undoStep);
+
+// ---- Veterinarians (/vets/me before /vets/:id) -----------------------------------------
 router.get('/vets', vets.getVets);
+router.get('/vets/me', protect, vetOnly, vets.getMyVet);
+router.put('/vets/me', protect, vetOnly, vets.updateMyVet);
 router.get('/vets/:id', vets.getVetById);
-router.post('/vets', protect, adminOnly, vets.createVet);
-router.put('/vets/:id', protect, adminOnly, vets.updateVet);
-router.delete('/vets/:id', protect, adminOnly, vets.deleteVet);
 
 // ---- Services ------------------------------------------------------------------------
 router.get('/services', services.getServices);
 router.get('/services/:id', services.getServiceById);
-router.post('/services', protect, adminOnly, services.createService);
-router.put('/services/:id', protect, adminOnly, services.updateService);
-router.delete('/services/:id', protect, adminOnly, services.deleteService);
+router.post('/services', protect, vetOnly, services.createService);
+router.put('/services/:id', protect, vetOnly, services.updateService);
+router.delete('/services/:id', protect, vetOnly, services.deleteService);
 
 // ---- Patients, owners, contact, demo -------------------------------------------------
-router.get('/patients', protect, adminOnly, patients.getPatients);
-router.get('/users', protect, adminOnly, patients.getOwners);
+router.get('/patients', protect, vetOnly, patients.getPatients);
+router.get('/users', protect, vetOnly, patients.getOwners);
 router.post('/contact', contactLimiter, contact.sendContactMessage);
-router.get('/contact', protect, adminOnly, contact.getContactMessages);
-router.post('/demo/reset', protect, adminOnly, demo.resetDemoData);
+router.get('/contact', protect, vetOnly, contact.getContactMessages);
+router.post('/demo/reset', protect, vetOnly, demo.resetDemoData);
 
 export default router;

@@ -4,7 +4,7 @@
  */
 import { Button, Col, Container, Row } from 'react-bootstrap';
 import { FaStar } from 'react-icons/fa';
-import { FiArrowRight, FiCalendar, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowRight, FiCalendar } from 'react-icons/fi';
 import { LuSyringe } from 'react-icons/lu';
 import { Link } from 'react-router-dom';
 import { SparkleIcon } from '../../../components/BrandIcons';
@@ -58,15 +58,6 @@ export default function HeroSection() {
               <div className="hero-blob" aria-hidden="true" />
               <div className="hero-frame">
                 <ImageWithFallback src="/images/hero.jpg" alt="Happy dog with its owner at a friendly veterinary clinic" loading="eager" className="hero-img" />
-              </div>
-              <div className="float-card float-top" aria-hidden="true">
-                <span className="float-icon is-brand">
-                  <FiCheckCircle />
-                </span>
-                <div>
-                  <strong>Appointment confirmed</strong>
-                  <small>Queue E-004 · Today 10:30 AM</small>
-                </div>
               </div>
               <div className="float-card float-bottom" aria-hidden="true">
                 <span className="float-icon is-accent">

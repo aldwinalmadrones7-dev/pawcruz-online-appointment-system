@@ -1,5 +1,5 @@
 /**
- * patientController.js — Read-only patient records for admins. In a vet clinic the
+ * patientController.js — Read-only patient records for veterinarians. In a vet clinic the
  * patients are the animals: every pet with its owner and a quick visit summary.
  * Also lists pet-owner accounts (for walk-in bookings).
  */
@@ -9,7 +9,7 @@ import User from '../models/User.js';
 import { isUpcoming } from '../shared/appointmentRules.js';
 import { APPOINTMENT_STATUS, ROLES } from '../shared/constants.js';
 
-/** GET /api/patients (admin) — animal patients with owner and visit stats. */
+/** GET /api/patients (vet) — animal patients with owner and visit stats. */
 export async function getPatients(req, res) {
   const [pets, owners, appointments] = await Promise.all([
     Pet.find().sort({ name: 1 }),
@@ -33,7 +33,7 @@ export async function getPatients(req, res) {
   );
 }
 
-/** GET /api/users?role=owner (admin) — pet-owner accounts with how many pets each has. */
+/** GET /api/users?role=owner (vet) — pet-owner accounts with how many pets each has. */
 export async function getOwners(req, res) {
   const [owners, petCounts] = await Promise.all([
     User.find({ role: ROLES.OWNER }).sort({ lastName: 1, firstName: 1 }),

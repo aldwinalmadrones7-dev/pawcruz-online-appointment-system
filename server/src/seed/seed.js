@@ -18,7 +18,7 @@ import Vet from '../models/Vet.js';
 import { buildSeedData } from './seedData.js';
 
 const MODELS = [Appointment, Pet, User, Vet, Service];
-const REFERENCE_FIELDS = ['ownerId', 'petId', 'vetId', 'serviceId'];
+const REFERENCE_FIELDS = ['ownerId', 'petId', 'vetId', 'serviceId', 'userId'];
 
 /** Deletes every clinic document (contact messages are kept). */
 export async function clearDatabase() {
@@ -97,7 +97,9 @@ if (runFromCommandLine) {
     } else {
       const counts = await seedDatabase();
       console.log('Demo data inserted:', counts);
-      console.log('\nTest accounts:\n  Pet owner  owner@pawcruz.ph / Owner123!\n  Admin      admin@pawcruz.ph / Admin123!');
+      console.log(
+        '\nTest accounts:\n  Pet owner     owner@pawcruz.ph / Owner123!\n  Veterinarian  redmond.lopez@pawcruz.ph / Vet12345!\n  Veterinarian  neil.cruz@pawcruz.ph / Vet12345!',
+      );
     }
     await disconnectDB();
   } catch (err) {

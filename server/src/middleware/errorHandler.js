@@ -15,7 +15,12 @@ function duplicateKeyMessage(err) {
   if (index.includes('vet_slot_unique')) return { status: 409, field: 'startTime', message: 'Sorry, that time was just taken. Please pick another slot.' };
   if (index.includes('pet_slot_unique')) return { status: 409, field: 'startTime', message: 'One of your pets already has an appointment at that time.' };
   const field = Object.keys(err.keyValue ?? err.keyPattern ?? {})[0] ?? null;
-  const labels = { email: 'This email is already in use.', licenseNo: 'This PRC license number is already registered.', name: 'This name is already in use.' };
+  const labels = {
+    email: 'This email is already in use.',
+    licenseNo: 'This PRC license number is already registered.',
+    name: 'This name is already in use.',
+    userId: 'This account already has a veterinarian profile.',
+  };
   return { status: 409, field, message: labels[field] ?? 'This record already exists.' };
 }
 

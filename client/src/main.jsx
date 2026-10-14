@@ -11,6 +11,7 @@ import './styles/components.css';
 import './styles/layout.css';
 import './styles/pages.css';
 import './styles/pawcruz.css';
+import './styles/queue.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';

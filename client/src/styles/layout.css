@@ -71,6 +71,47 @@
   color: var(--text);
 }
 
+/* "Live Queue" link with a pulsing dot */
+.site-links .nav-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.nav-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: queue-pulse 1.8s ease-out infinite;
+}
+
+/* Small desktops: six links + actions need tighter spacing ("● Queue" instead of "● Live Queue") */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+  .site-links .nav-link {
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .site-nav .brand-text small {
+    letter-spacing: 0.08em;
+  }
+
+  .nav-live-word,
+  .site-nav .user-chip-name {
+    display: none;
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .site-links .nav-link {
+    padding: 0.5rem 0.7rem !important;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+}
+
 .nav-actions {
   display: flex;
   flex-wrap: wrap;

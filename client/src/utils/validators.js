@@ -3,7 +3,7 @@
  * { fieldName: 'error message' }; an empty object means the form is valid.
  * The Express API repeats these checks with the same file (never trust the browser alone).
  */
-import { APPOINTMENT_SOURCES, APPOINTMENT_STATUSES, SERVICE_CATEGORIES, SERVICE_DURATIONS } from './constants';
+import { ACCOUNT_ROLES, APPOINTMENT_SOURCES, APPOINTMENT_STATUSES, ROLES, SERVICE_CATEGORIES, SERVICE_DURATIONS } from './constants';
 import { getManilaToday } from './dateUtils';
 import { BREEDS_BY_SPECIES, SEX_OPTIONS, SPECIES_OPTIONS } from './petOptions';
 import { timeToMinutes } from './schedule';
@@ -59,6 +59,15 @@ function passwordError(value) {
   return isStrongPassword(value) ? '' : 'Use at least 8 characters with an uppercase letter and a number.';
 }
 
+function licenseError(value) {
+  return PRC_LICENSE_REGEX.test(String(value ?? '').trim()) ? '' : 'Enter a valid PRC license number (4–10 letters, numbers or dashes).';
+}
+
+function specialtyError(value) {
+  if (isBlank(value)) return 'Specialty is required.';
+  return String(value).trim().length > 60 ? 'Keep the specialty under 60 characters.' : '';
+}
+
 function pastDateError(value, label) {
   if (!value) return '';
   if (value > getManilaToday()) return `${label} can't be in the future.`;
@@ -80,12 +89,18 @@ export function validateLogin({ email, password }) {
   });
 }
 
+/** Create account: a pet owner, or a veterinarian (who also gives a PRC license, specialty and the clinic code). */
 export function validateRegister(values) {
+  const isVet = values.role === ROLES.VET;
   return collect({
+    role: ACCOUNT_ROLES.includes(values.role) ? '' : 'Choose the type of account you need.',
     firstName: nameError(values.firstName, 'First name'),
     lastName: nameError(values.lastName, 'Last name'),
     email: emailError(values.email),
     phone: phoneError(values.phone),
+    licenseNo: isVet ? licenseError(values.licenseNo) : '',
+    specialty: isVet ? specialtyError(values.specialty) : '',
+    clinicCode: isVet && isBlank(values.clinicCode) ? 'Enter the veterinarian sign-up code from the clinic.' : '',
     password: passwordError(values.password),
     confirmPassword: !values.confirmPassword
       ? 'Please confirm your password.'
@@ -155,18 +170,16 @@ export function validatePet(values) {
   });
 }
 
-// ---- Admin forms ----------------------------------------------------------------------
+// ---- Veterinarian forms -----------------------------------------------------------------
 
-export function validateVet(values) {
+/** A vet's own professional profile and schedule (name, email and mobile come from their account). */
+export function validateVetProfile(values) {
   const years = Number(values.yearsExperience);
   const bioLength = String(values.bio ?? '').trim().length;
   const shiftOk = values.shiftStart && values.shiftEnd && timeToMinutes(values.shiftEnd) - timeToMinutes(values.shiftStart) >= 60;
   return collect({
-    name: nameError(values.name, 'Full name'),
-    specialty: isBlank(values.specialty) ? 'Specialty is required.' : '',
-    licenseNo: PRC_LICENSE_REGEX.test(String(values.licenseNo ?? '').trim()) ? '' : 'Enter a valid PRC license number (4–10 letters, numbers or dashes).',
-    email: emailError(values.email),
-    phone: phoneError(values.phone),
+    specialty: specialtyError(values.specialty),
+    licenseNo: licenseError(values.licenseNo),
     yearsExperience:
       values.yearsExperience === '' || !Number.isInteger(years) || years < 0 || years > 60 ? 'Enter whole years between 0 and 60.' : '',
     availableDays: values.availableDays?.length ? '' : 'Pick at least one working day.',
@@ -188,7 +201,7 @@ export function validateService(values) {
   });
 }
 
-/** Admin "New appointment / walk-in" and "Edit appointment" form. */
+/** Clinic "Register a visit / walk-in" and "Edit appointment" form (veterinarian portal). */
 export function validateAppointmentForm(values, { isEdit = false, scheduleLocked = false } = {}) {
   return collect({
     ownerId: isEdit || values.ownerId ? '' : 'Choose a pet owner.',

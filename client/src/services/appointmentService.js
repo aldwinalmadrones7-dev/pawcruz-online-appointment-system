@@ -1,7 +1,7 @@
 /**
  * appointmentService.js — Appointments API, modelled on final-vet:
  * availability per vet (10-minute slots), booking one or more pets into back-to-back
- * slots with one vet, queue numbers, cancel, rebook, admin status changes, edits,
+ * slots with one vet, queue numbers, cancel, rebook, clinic (vet) status changes, edits,
  * deletes and dashboard stats. The Express API re-checks every booking before saving.
  */
 import axiosClient from '../api/axiosClient';
@@ -19,7 +19,7 @@ async function write(request) {
 
 // ---- Reads ------------------------------------------------------------------------
 
-/** GET /appointments (admin) — optional filters: status, date, vetId, ownerId, petId, source. */
+/** GET /appointments (vet) — optional filters: status, date, vetId, ownerId, petId, source. */
 export async function getAppointments(filters = {}) {
   const { data } = await axiosClient.get('/appointments', { params: filters });
   return data;
@@ -51,7 +51,8 @@ export async function getAvailability({ date, petIds = [], excludeAppointmentId 
 
 /**
  * POST /appointments — books one or more pets into back-to-back 10-minute slots with one vet.
- * Pet owners always book "Online"; admins register "Walk-In" bookings for an owner's pets.
+ * Pet owners always book "Online"; vets register "Walk-In" bookings for an owner's pets
+ * (checkIn: true puts a pet that is already at the clinic straight into today's live queue).
  * Returns { reference, queueNumber, appointments }.
  */
 export function createAppointment(booking) {
@@ -68,24 +69,24 @@ export function cancelAppointment(id, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/cancel`, { reason }));
 }
 
-/** PATCH /appointments/:id/status (admin) — mark completed or cancel. */
+/** PATCH /appointments/:id/status (vet) — mark completed or cancel. */
 export function updateAppointmentStatus(id, status, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/status`, { status, reason }));
 }
 
-/** PUT /appointments/:id (admin) — edit reason, notes, source, status and (for upcoming visits) the schedule. */
+/** PUT /appointments/:id (vet) — edit reason, notes, source, status and (for upcoming visits) the schedule. */
 export function updateAppointment(id, changes) {
   return write(axiosClient.put(`/appointments/${id}`, changes));
 }
 
-/** DELETE /appointments/:id (admin) */
+/** DELETE /appointments/:id (vet) */
 export function deleteAppointment(id) {
   return write(axiosClient.delete(`/appointments/${id}`));
 }
 
 // ---- Dashboard ----------------------------------------------------------------------
 
-/** GET /appointments/stats (admin) — totals, today's schedule, vets on duty, this week per day. */
+/** GET /appointments/stats (vet) — totals, today's schedule and queue, vets on duty, this week per day. */
 export async function getDashboardStats() {
   const { data } = await axiosClient.get('/appointments/stats');
   return data;

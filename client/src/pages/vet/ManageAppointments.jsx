@@ -1,5 +1,5 @@
 /**
- * ManageAppointments — Admin CRUD for every appointment (final-vet's "List of Appointments"):
+ * ManageAppointments — Veterinarian CRUD for every appointment (final-vet's "List of Appointments"):
  * register walk-ins, edit, delete, mark completed, rebook and cancel, with search,
  * status / vet / source / date filters and pagination.
  */
@@ -16,6 +16,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import PageHeader from '../../components/PageHeader';
 import PaginationBar from '../../components/PaginationBar';
 import PetAvatar from '../../components/PetAvatar';
+import QueueStageBadge from '../../components/QueueStageBadge';
 import RebookModal from '../../components/RebookModal';
 import SearchBar from '../../components/SearchBar';
 import StatusBadge from '../../components/StatusBadge';
@@ -25,13 +26,13 @@ import usePagination from '../../hooks/usePagination';
 import { deleteAppointment, getAppointments, updateAppointmentStatus } from '../../services/appointmentService';
 import { getServices } from '../../services/serviceService';
 import { getVets } from '../../services/vetService';
-import { canComplete, isUpcoming } from '../../utils/appointmentRules';
+import { canComplete, canRebook, getLiveQueueStage, isUpcoming } from '../../utils/appointmentRules';
 import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES } from '../../utils/constants';
 import { getManilaToday } from '../../utils/dateUtils';
 import { formatDate, formatDateShort, formatTimeRange, formatVetName, getFullName } from '../../utils/formatters';
 
 const { COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
-const CANCEL_REASONS = ['Veterinarian unavailable', 'Owner called to cancel', 'Clinic schedule change', 'Duplicate booking'];
+const CANCEL_REASONS = ['Veterinarian unavailable', 'Owner called to cancel', 'Did not arrive (no-show)', 'Clinic schedule change', 'Duplicate booking'];
 
 export default function ManageAppointments() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -139,17 +140,17 @@ export default function ManageAppointments() {
             {label('Complete')}
           </Button>
         )}
+        {canRebook(appointment) && (
+          <Button variant="soft" size="sm" className={cls} title="Rebook" aria-label={`Rebook ${appointment.pet.name}'s visit`} disabled={busy} onClick={() => open('rebook', appointment)}>
+            <FiRepeat aria-hidden="true" />
+            {label('Rebook')}
+          </Button>
+        )}
         {isUpcoming(appointment) && (
-          <>
-            <Button variant="soft" size="sm" className={cls} title="Rebook" aria-label={`Rebook ${appointment.pet.name}'s visit`} disabled={busy} onClick={() => open('rebook', appointment)}>
-              <FiRepeat aria-hidden="true" />
-              {label('Rebook')}
-            </Button>
-            <Button variant="outline-danger" size="sm" className={cls} title="Cancel" aria-label={`Cancel ${appointment.pet.name}'s visit`} disabled={busy} onClick={() => open('cancel', appointment)}>
-              <FiXCircle aria-hidden="true" />
-              {label('Cancel')}
-            </Button>
-          </>
+          <Button variant="outline-danger" size="sm" className={cls} title="Cancel" aria-label={`Cancel ${appointment.pet.name}'s visit`} disabled={busy} onClick={() => open('cancel', appointment)}>
+            <FiXCircle aria-hidden="true" />
+            {label('Cancel')}
+          </Button>
         )}
         {withText ? (
           <>
@@ -183,7 +184,7 @@ export default function ManageAppointments() {
   return (
     <div>
       <PageHeader
-        eyebrow="Admin panel"
+        eyebrow="Veterinarian portal"
         title="List of appointments"
         subtitle="Register walk-ins, keep the schedule tidy and close out visits once they’re done."
         actions={
@@ -267,6 +268,11 @@ export default function ManageAppointments() {
                         <td>{formatVetName(appointment.vet)}</td>
                         <td>
                           <StatusBadge status={appointment.status} />
+                          {getLiveQueueStage(appointment) && (
+                            <span className="d-block mt-1">
+                              <QueueStageBadge stage={getLiveQueueStage(appointment)} />
+                            </span>
+                          )}
                           <small className="d-block text-muted-soft mt-1 text-nowrap">
                             Queue {appointment.queueNumber} · {appointment.source}
                           </small>
@@ -321,7 +327,7 @@ export default function ManageAppointments() {
         onConfirm={() => changeStatus(selected, CANCELLED, cancelReason)}
         onCancel={() => setModal(null)}
       >
-        <Form.Group controlId="admin-cancel-reason" className="text-start">
+        <Form.Group controlId="clinic-cancel-reason" className="text-start">
           <Form.Label>Reason</Form.Label>
           <Form.Select value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
             {CANCEL_REASONS.map((reason) => (

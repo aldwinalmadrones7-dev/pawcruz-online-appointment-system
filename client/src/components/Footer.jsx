@@ -10,17 +10,19 @@ import BrandLogo from './BrandLogo';
 import WaveDivider from './WaveDivider';
 
 const QUICK_LINKS = [
+  { to: '/queue', label: 'Live queue' },
   { to: '/services', label: 'Services & pricing' },
   { to: '/vets', label: 'Our veterinarians' },
   { to: '/about', label: 'About the clinic' },
   { to: '/contact', label: 'Contact us' },
 ];
 
-const OWNER_LINKS = [
+const ACCOUNT_LINKS = [
   { to: '/owner/book', label: 'Book an appointment' },
   { to: '/owner/pets', label: 'My pets' },
   { to: '/login', label: 'Log in' },
   { to: '/register', label: 'Create an account' },
+  { to: '/register?role=vet', label: 'Veterinarian sign-up' },
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -64,9 +66,9 @@ export default function Footer() {
               </ul>
             </Col>
             <Col xs={6} lg={3}>
-              <h3 className="footer-heading">Pet owners</h3>
+              <h3 className="footer-heading">Your account</h3>
               <ul className="footer-links">
-                {OWNER_LINKS.map((link) => (
+                {ACCOUNT_LINKS.map((link) => (
                   <li key={link.to}>
                     <Link to={link.to}>{link.label}</Link>
                   </li>
