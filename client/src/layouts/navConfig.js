@@ -2,8 +2,7 @@
  * navConfig.js — Sidebar links for each role. `badgeKey` matches a field from
  * appointmentService.getAppointmentCounts() and shows a count bubble.
  */
-import { FaUserMd } from 'react-icons/fa';
-import { FiCalendar, FiClipboard, FiGrid, FiHeart, FiPlusCircle, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiClipboard, FiGrid, FiHeart, FiPlusCircle, FiUser, FiUsers } from 'react-icons/fi';
 import { LuPawPrint } from 'react-icons/lu';
 import { ROLES } from '../utils/constants';
 
@@ -15,16 +14,12 @@ export const DASHBOARD_NAV = {
     { to: '/owner/appointments', label: 'Appointments', icon: FiCalendar, badgeKey: 'upcoming' },
     { to: '/owner/profile', label: 'Profile', icon: FiUser },
   ],
-  [ROLES.ADMIN]: [
-    { to: '/admin/dashboard', label: 'Dashboard', icon: FiGrid },
-    { to: '/admin/appointments', label: 'Appointments', icon: FiCalendar, badgeKey: 'pending' },
-    { to: '/admin/patients', label: 'Animal Patients', icon: LuPawPrint },
-    { to: '/admin/vets', label: 'Veterinarians', icon: FaUserMd },
-    { to: '/admin/services', label: 'Services', icon: FiClipboard },
-  ],
   [ROLES.VET]: [
     { to: '/vet/dashboard', label: 'Dashboard', icon: FiGrid },
-    { to: '/vet/appointments', label: 'My Appointments', icon: FiCalendar, badgeKey: 'toComplete' },
+    { to: '/vet/queue', label: 'Live Queue', icon: FiUsers, badgeKey: 'waiting' },
+    { to: '/vet/appointments', label: 'Appointments', icon: FiCalendar, badgeKey: 'today' },
     { to: '/vet/patients', label: 'Animal Patients', icon: LuPawPrint },
+    { to: '/vet/services', label: 'Services', icon: FiClipboard },
+    { to: '/vet/profile', label: 'My Profile', icon: FiUser },
   ],
 };

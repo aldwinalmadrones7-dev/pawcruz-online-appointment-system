@@ -1,12 +1,13 @@
 /**
  * Forbidden — "403 Not Authorized" page shown by RoleRoute when a user opens an
- * area their role can't access (e.g. a patient visiting /admin).
+ * area their role can't access (e.g. a pet owner visiting /vet).
  */
 import { Button, Container } from 'react-bootstrap';
 import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { SparkleIcon } from '../../components/BrandIcons';
 import useAuth from '../../hooks/useAuth';
+import { ROLES } from '../../utils/constants';
 import { getDashboardPath } from '../../utils/routes';
 
 export default function Forbidden() {
@@ -24,7 +25,7 @@ export default function Forbidden() {
         </div>
         <p className="error-eyebrow">Error 403</p>
         <h1 className="error-title">403 — Not authorized</h1>
-        <p className="error-text">This area is for a different kind of account, so yours doesn't have access to it.</p>
+        <p className="error-text">This area is only for {role === ROLES.OWNER ? 'veterinarians' : 'pet owners'}. Your account doesn't have access to it.</p>
         <div className="d-flex flex-wrap gap-3 justify-content-center">
           <Button as={Link} to={getDashboardPath(role)} variant="brand" size="lg">
             <FiArrowLeft aria-hidden="true" /> Go to my dashboard

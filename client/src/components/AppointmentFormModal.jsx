@@ -1,10 +1,10 @@
 /**
- * AppointmentFormModal — Admin form, final-vet style.
+ * AppointmentFormModal — Clinic form in the veterinarian portal, final-vet style.
  * New: register a walk-in (or phone) visit for one or more of an owner's pets —
- *      owner → pets → reason → date → open time → free vet.
- * Edit: change one appointment's reason, notes, source, status and (if upcoming) its schedule.
- * Only the assigned vet can complete a visit (with its medical record), so "Completed" is
- * never offered here, and a completed visit's status is locked.
+ *      owner → pets → reason → date → open time → free vet. A walk-in for today can go
+ *      straight into the live queue ("the pet is here now").
+ * Edit: change one appointment's reason, notes, source, status and (if upcoming and not yet
+ *       checked in) its schedule.
  */
 import { Button, Col, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import { FiLock } from 'react-icons/fi';
@@ -17,7 +17,7 @@ import { getOwners } from '../services/patientService';
 import { getPets } from '../services/petService';
 import { getLastBookableDate, isActive } from '../utils/appointmentRules';
 import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../utils/constants';
-import { isDateTimePast } from '../utils/dateUtils';
+import { getManilaToday, isDateTimePast } from '../utils/dateUtils';
 import { describePet, formatDateLong, formatTimeRange, getFullName } from '../utils/formatters';
 import { isVetOnDuty } from '../utils/schedule';
 import { validateAppointmentForm } from '../utils/validators';
@@ -38,17 +38,22 @@ function buildInitialValues(appointment, services = []) {
     source: appointment?.source ?? 'Walk-In',
     status: appointment?.status ?? APPOINTMENT_STATUS.CONFIRMED,
     notes: appointment?.notes ?? '',
+    checkIn: true, // new walk-ins for today join the live queue right away
   };
 }
 
 export default function AppointmentFormModal({ show, appointment, services, vets, onHide, onSaved }) {
   const isEdit = Boolean(appointment);
-  const scheduleLocked = isEdit && (!isActive(appointment) || isDateTimePast(appointment.date, appointment.startTime));
+  const checkedIn = isEdit && isActive(appointment) && Boolean(appointment.checkedInAt);
+  const scheduleLocked = isEdit && (!isActive(appointment) || isDateTimePast(appointment.date, appointment.startTime) || checkedIn);
+  // Completing needs a medical record (the Complete button), and a completed visit stays completed.
   const isCompleted = appointment?.status === APPOINTMENT_STATUS.COMPLETED;
   const statusOptions = isCompleted ? [APPOINTMENT_STATUS.COMPLETED] : APPOINTMENT_STATUSES.filter((status) => status !== APPOINTMENT_STATUS.COMPLETED);
   const validate = (values) => validateAppointmentForm(values, { isEdit, scheduleLocked });
   const form = useForm(buildInitialValues(appointment, services), validate);
   const { values, errors, setFieldValue, setValues } = form;
+  // A walk-in for today is usually already at the clinic, so it can join the live queue now.
+  const canCheckIn = !isEdit && values.source === 'Walk-In' && values.date === getManilaToday();
 
   const { data: owners } = useAsync(() => (show && !isEdit ? getOwners() : Promise.resolve(null)), [show, isEdit]);
   const { data: ownerPets } = useAsync(() => (values.ownerId && !isEdit ? getPets({ ownerId: values.ownerId }) : Promise.resolve([])), [values.ownerId, isEdit]);
@@ -78,8 +83,9 @@ export default function AppointmentFormModal({ show, appointment, services, vets
         toast.success(`${saved.pet.name}'s appointment was updated.`);
         onSaved([saved]);
       } else {
-        const result = await createAppointment(formValues);
-        toast.success(`${formValues.source} visit registered — queue ${result.queueNumber}, reference ${result.reference}.`);
+        const result = await createAppointment({ ...formValues, checkIn: canCheckIn && formValues.checkIn });
+        const queued = result.appointments.some((a) => a.checkedInAt) ? ' Checked in — waiting in the live queue.' : '';
+        toast.success(`${formValues.source} visit registered — queue ${result.queueNumber}, reference ${result.reference}.${queued}`);
         onSaved(result.appointments);
       }
       onHide();
@@ -188,6 +194,18 @@ export default function AppointmentFormModal({ show, appointment, services, vets
                 )}
               </Row>
 
+              {canCheckIn && (
+                <Form.Check
+                  type="checkbox"
+                  id="appt-check-in"
+                  name="checkIn"
+                  className="mt-3"
+                  checked={values.checkIn}
+                  onChange={form.handleChange}
+                  label="The pet is here now — check in to today’s live queue"
+                />
+              )}
+
               <FormField
                 label="Notes"
                 as="textarea"
@@ -209,7 +227,12 @@ export default function AppointmentFormModal({ show, appointment, services, vets
                     <strong>
                       {formatDateLong(appointment.date)} · {formatTimeRange(appointment.startTime, appointment.endTime)}
                     </strong>
-                    <span>This visit is past or no longer active, so its schedule can’t change. You can still update the details on the left.</span>
+                    <span>
+                      {checkedIn
+                        ? 'This pet is already checked in at the clinic, so the schedule can’t change. Undo the check-in on the Live Queue page to move the visit.'
+                        : 'This visit is past or no longer active, so its schedule can’t change.'}{' '}
+                      You can still update the details on the left.
+                    </span>
                   </div>
                 </div>
               ) : (

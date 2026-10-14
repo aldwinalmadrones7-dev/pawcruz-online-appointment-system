@@ -1,7 +1,6 @@
 /**
  * AppointmentDetail — One visit: queue number, status timeline, pet profile, vet,
  * schedule, reason and notes, with rebook, cancel, add-to-calendar and print actions.
- * Once the vet completes the visit, its medical record is shown here too.
  */
 import { useState } from 'react';
 import { Button, Col, Row } from 'react-bootstrap';
@@ -20,28 +19,37 @@ import RebookModal from '../../components/RebookModal';
 import StatusBadge from '../../components/StatusBadge';
 import useAsync from '../../hooks/useAsync';
 import { cancelAppointment, getAppointmentById } from '../../services/appointmentService';
-import { canOwnerCancel, canOwnerRebook, isActive } from '../../utils/appointmentRules';
-import { APPOINTMENT_STATUS, CLINIC_INFO, CONSULTATION_TYPE } from '../../utils/constants';
+import { canOwnerCancel, canOwnerRebook, getQueueStage, isActive } from '../../utils/appointmentRules';
+import { APPOINTMENT_STATUS, CLINIC_INFO, CONSULTATION_TYPE, QUEUE_STAGE } from '../../utils/constants';
 import { downloadAppointmentIcs } from '../../utils/calendarFile';
-import { describePet, formatCurrency, formatDateLong, formatRelativeDay, formatTimeRange, formatTimestamp, formatVetName } from '../../utils/formatters';
+import { describePet, formatClockTime, formatCurrency, formatDateLong, formatRelativeDay, formatTimeRange, formatTimestamp, formatVetName } from '../../utils/formatters';
 
-const { PENDING, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
 
-/** Builds the status timeline: booked → accepted by the clinic → visit day → completed by the vet. */
+/**
+ * Builds the status timeline (bookings are confirmed right away), following the live queue on
+ * the visit day: checked in at the front desk → with the vet → completed.
+ */
 function getTimeline(appointment) {
-  const { status } = appointment;
-  const booked = { label: 'Booking sent', detail: formatTimestamp(appointment.createdAt), state: 'done' };
-  if (status === CANCELLED) {
+  const booked = { label: 'Booked & confirmed', detail: formatTimestamp(appointment.createdAt), state: 'done' };
+  if (appointment.status === CANCELLED) {
     const by = appointment.cancelledBy === 'clinic' ? 'by the clinic' : 'by you';
     return [booked, { label: 'Cancelled', detail: `${by}${appointment.cancelReason ? ` · ${appointment.cancelReason}` : ''}`, state: 'cancelled' }];
   }
-  const accepted = status !== PENDING;
-  const completed = status === COMPLETED;
+  const done = appointment.status === COMPLETED;
+  const stage = getQueueStage(appointment);
+  let arrival = `${formatRelativeDay(appointment.date)} · show queue ${appointment.queueNumber} at the front desk`;
+  if (appointment.checkedInAt) arrival = `${formatClockTime(appointment.checkedInAt)} · queue ${appointment.queueNumber}`;
+  else if (done) arrival = `${formatRelativeDay(appointment.date)} · queue ${appointment.queueNumber}`;
   return [
     booked,
-    { label: 'Accepted by the clinic', detail: accepted ? `Assigned to ${formatVetName(appointment.vet)}` : 'Waiting for the clinic to confirm', state: accepted ? 'done' : 'current' },
-    { label: 'Visit day', detail: `${formatRelativeDay(appointment.date)} · queue ${appointment.queueNumber}`, state: completed ? 'done' : accepted ? 'current' : 'todo' },
-    { label: 'Completed', detail: completed ? 'Medical record added by your vet' : 'After the consultation', state: completed ? 'done' : 'todo' },
+    { label: 'Checked in', detail: arrival, state: appointment.checkedInAt || done ? 'done' : 'current' },
+    {
+      label: 'With the vet',
+      detail: appointment.servedAt ? `Called in at ${formatClockTime(appointment.servedAt)}` : stage === QUEUE_STAGE.WAITING ? 'Waiting in the queue' : 'When it’s your turn',
+      state: appointment.servedAt || done ? 'done' : stage === QUEUE_STAGE.WAITING ? 'current' : 'todo',
+    },
+    { label: 'Completed', detail: done ? 'Thanks for visiting!' : 'After the consultation', state: done ? 'done' : stage === QUEUE_STAGE.SERVING ? 'current' : 'todo' },
   ];
 }
 

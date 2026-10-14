@@ -2,7 +2,8 @@
  * MedicalRecordModal — The vet's view of one accepted visit: the patient, the owner's
  * notes and the pet's past visits on the left; on the right, the medical record form
  * ("Save record & complete") or, once completed, the saved record. Saving takes the vet to
- * Animal Patients with that pet's visit history open, so the new record is right there.
+ * Animal Patients with that pet's visit history open, so the new record is right there
+ * (the live queue turns this off for all but the last pet of a multi-pet visit).
  */
 import { Button, Col, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import { FiCheckCircle } from 'react-icons/fi';
@@ -31,7 +32,7 @@ const buildInitialValues = (appointment) => ({
   remarks: '',
 });
 
-export default function MedicalRecordModal({ appointment, show, onHide, onCompleted }) {
+export default function MedicalRecordModal({ appointment, show, onHide, onCompleted, openPatientAfterSave = true }) {
   const navigate = useNavigate();
   const form = useForm(buildInitialValues(appointment), validateMedicalRecord);
   const { values, errors } = form;
@@ -43,8 +44,10 @@ export default function MedicalRecordModal({ appointment, show, onHide, onComple
       const saved = await completeAppointment(appointment.id, formValues);
       toast.success(`${saved.pet.name}'s visit is completed. The medical record is now in Animal Patients.`);
       onCompleted(saved);
-      onHide();
-      navigate(`/vet/patients?pet=${saved.petId}`);
+      if (openPatientAfterSave) {
+        onHide();
+        navigate(`/vet/patients?pet=${saved.petId}`);
+      }
     } catch (err) {
       if (!form.applyServerError(err)) toast.error(err.message);
     }

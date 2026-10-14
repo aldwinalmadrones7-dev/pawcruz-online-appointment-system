@@ -1,7 +1,6 @@
 /**
- * User — Pet-owner, admin and veterinarian accounts. A vet account is linked to its Vet
- * profile through `vetId`. Passwords are hashed with bcrypt before saving and are never
- * returned (select: false + the toJSON plugin).
+ * User — Pet-owner and veterinarian accounts (a vet's public profile is a Vet linked by userId).
+ * Passwords are hashed with bcrypt before saving and are never returned (select: false + the toJSON plugin).
  */
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
@@ -20,7 +19,6 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, select: false },
     address: { type: String, default: '', trim: true, maxlength: 200 },
     avatar: { type: String, default: null },
-    vetId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vet', default: null, index: true }, // vet accounts only
   },
   { timestamps: true },
 );

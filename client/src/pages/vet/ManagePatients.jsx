@@ -2,7 +2,7 @@
  * ManagePatients — Read-only, searchable and paginated list of animal patients (pets)
  * with their owners, plus a details modal showing the pet's profile and visit history
  * (completed visits with the vet's medical records; cancelled visits are not part of it).
- * Shared by the admin panel (every pet) and the vet portal (the vet's own patients).
+ * ?pet=<id> opens that patient right away — where a vet lands after saving a record.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Col, Form, Modal, Row, Table } from 'react-bootstrap';
@@ -16,11 +16,9 @@ import PetAvatar from '../../components/PetAvatar';
 import SearchBar from '../../components/SearchBar';
 import VisitHistory from '../../components/VisitHistory';
 import useAsync from '../../hooks/useAsync';
-import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
 import { getPatients } from '../../services/patientService';
-import { ROLES } from '../../utils/constants';
 import { getSpeciesFamily } from '../../utils/petOptions';
 import { describePet, formatDate, formatIsoDate, getFullName } from '../../utils/formatters';
 
@@ -37,8 +35,6 @@ const SPECIES_FILTERS = [
 ];
 
 export default function ManagePatients() {
-  const { role } = useAuth();
-  const isVet = role === ROLES.VET;
   const { data, loading, error, reload } = useAsync(() => getPatients(), []);
   const [search, setSearch] = useState('');
   const [family, setFamily] = useState('');
@@ -78,15 +74,7 @@ export default function ManagePatients() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow={isVet ? 'Veterinarian portal' : 'Admin panel'}
-        title="Animal patients"
-        subtitle={
-          isVet
-            ? 'Pets the clinic has assigned to you. Open a patient to read their visit history. Every record you save when completing a visit is added here.'
-            : "Every registered pet with its owner and completed visits. Open a patient to read the vets' medical records. Owners update pet details in their account."
-        }
-      />
+      <PageHeader eyebrow="Veterinarian portal" title="Animal patients" subtitle="Every registered pet with its owner and completed visits. Open a patient to read the medical records. Every record saved when completing a visit is added here." />
 
       <div className="pc-card">
         <div className="pc-card-body">

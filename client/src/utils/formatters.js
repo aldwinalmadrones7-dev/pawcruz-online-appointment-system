@@ -3,7 +3,7 @@
  * durations, names, pet ages and greetings.
  */
 import { differenceInCalendarDays, format } from 'date-fns';
-import { WEEKDAYS } from './constants';
+import { ROLES, WEEKDAYS } from './constants';
 import { getManilaNowMinutes, getManilaToday, parseDateKey, TIME_ZONE } from './dateUtils';
 
 const pesoFormatter = new Intl.NumberFormat('en-PH', {
@@ -56,6 +56,30 @@ const isoDateFormatter = new Intl.DateTimeFormat('en-PH', { timeZone: TIME_ZONE,
 /** ISO timestamp → "Oct 7, 2026" (date only, Manila time). */
 export const formatIsoDate = (iso) => (iso ? isoDateFormatter.format(new Date(iso)) : '—');
 
+const clockFormatter = new Intl.DateTimeFormat('en-PH', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit' });
+const clockSecondsFormatter = new Intl.DateTimeFormat('en-PH', { timeZone: TIME_ZONE, hour: 'numeric', minute: '2-digit', second: '2-digit' });
+
+/** ISO timestamp (or Date) → "1:41 PM", or "1:41:07 PM" with `seconds` (time only, Manila time). */
+export const formatClockTime = (iso, { seconds = false } = {}) => (iso ? (seconds ? clockSecondsFormatter : clockFormatter).format(new Date(iso)) : '—');
+
+/** Whole minutes from an ISO timestamp until now (never negative). */
+export const minutesSince = (iso, now = Date.now()) => (iso ? Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000)) : 0);
+
+/** Estimated queue wait: 0 → "next in line", 25 → "about 25 min", 75 → "about 1 hr 15 min". */
+export const formatWait = (minutes) => (minutes > 0 ? `about ${formatDuration(minutes)}` : 'next in line');
+
+/** 1 → "1st", 2 → "2nd", 3 → "3rd", 11 → "11th". */
+export function formatOrdinal(number) {
+  const suffixes = { one: 'st', two: 'nd', few: 'rd', other: 'th' };
+  return `${number}${suffixes[new Intl.PluralRules('en-US', { type: 'ordinal' }).select(number)]}`;
+}
+
+/** ["Luna"] → "Luna", ["Ming-ming", "Luna"] → "Ming-ming & Luna", three or more → "A, B & C". */
+export function formatPetNames(pets = []) {
+  const names = pets.map((pet) => pet.name);
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names.at(-1)}` : (names[0] ?? '');
+}
+
 /** "Today", "Tomorrow", "In 5 days", "3 days ago" relative to Manila's today. */
 export function formatRelativeDay(key) {
   const diff = differenceInCalendarDays(parseDateKey(key), parseDateKey(getManilaToday()));
@@ -75,6 +99,9 @@ export const formatWeekdays = (days = []) => {
 };
 
 export const getFullName = (person) => (person ? `${person.firstName ?? ''} ${person.lastName ?? ''}`.trim() : '');
+
+/** The name shown for a signed-in account: veterinarians get their "Dr." title. */
+export const getDisplayName = (user) => (user?.role === ROLES.VET ? `Dr. ${getFullName(user)}` : getFullName(user));
 
 export const formatVetName = (vet) => (vet?.name ? `Dr. ${vet.name}` : 'Unassigned veterinarian');
 
