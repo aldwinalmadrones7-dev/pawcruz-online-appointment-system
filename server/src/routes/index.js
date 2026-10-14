@@ -60,6 +60,7 @@ router.get('/pets', protect, vetOnly, pets.getPets);
 router.post('/pets', protect, pets.createPet);
 router.put('/pets/:id', protect, pets.updatePet);
 router.delete('/pets/:id', protect, pets.deletePet);
+router.get('/pets/:id/history', protect, appointments.getPetHistory); // completed visits + medical records
 
 // ---- Appointments (fixed paths before /:id) -----------------------------------------
 router.get('/appointments/availability', protect, appointments.getAvailability);
@@ -73,15 +74,15 @@ router.put('/appointments/:id', protect, vetOnly, appointments.updateAppointment
 router.patch('/appointments/:id/rebook', protect, appointments.rescheduleAppointment);
 router.patch('/appointments/:id/cancel', protect, appointments.cancelAppointment);
 router.patch('/appointments/:id/status', protect, vetOnly, appointments.updateAppointmentStatus);
+router.patch('/appointments/:id/complete', protect, vetOnly, appointments.completeAppointment); // with the medical record
 router.delete('/appointments/:id', protect, vetOnly, appointments.deleteAppointment);
 
-// ---- Live queue (check-in → with the vet → completed) -----------------------------------
+// ---- Live queue (check-in → with the vet; completing = PATCH /appointments/:id/complete) ---
 router.get('/queue', queueLimiter, queue.getPublicQueue);
 router.get('/queue/mine', protect, ownerOnly, queue.getMyQueue);
 router.get('/queue/manage', protect, vetOnly, queue.getManageQueue);
 router.patch('/queue/:visitId/check-in', protect, vetOnly, queue.checkIn);
 router.patch('/queue/:visitId/call', protect, vetOnly, queue.callIn);
-router.patch('/queue/:visitId/complete', protect, vetOnly, queue.completeVisit);
 router.patch('/queue/:visitId/undo', protect, vetOnly, queue.undoStep);
 
 // ---- Veterinarians (/vets/me before /vets/:id) -----------------------------------------

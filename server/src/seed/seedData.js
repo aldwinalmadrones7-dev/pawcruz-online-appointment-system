@@ -251,6 +251,36 @@ function finishedTimes(date, startTime, endTime) {
   return { checkedInAt: iso(start - 12 * MINUTE), servedAt: iso(start), completedAt: toManilaDateTime(date, endTime).toISOString() };
 }
 
+/** The vet's findings for each kind of visit, used for the seeded Completed appointments. */
+const RECORD_BY_SERVICE = {
+  s1: { diagnosis: 'Healthy, no abnormal findings on physical exam.', treatment: 'Full physical exam: heart, lungs, eyes, ears, teeth, skin and joints checked.', prescription: '', remarks: 'Keep the current diet and exercise. Next wellness check in 6 months.' },
+  s2: { diagnosis: 'Healthy and due for a vaccine booster.', treatment: 'Vaccine given under the skin (right shoulder). Watched for 15 minutes with no reaction.', prescription: '', remarks: 'Mild soreness or sleepiness for 24 hours is normal. Vaccine card updated.' },
+  s3: { diagnosis: 'Routine parasite prevention; a little flea dirt seen on the coat.', treatment: 'Oral dewormer given; topical tick and flea treatment applied.', prescription: 'Repeat the dewormer in 3 months.', remarks: 'Wash bedding in hot water this week.' },
+  s4: { diagnosis: 'Allergic dermatitis (suspected food allergy).', treatment: 'Skin scraping negative for mites. Medicated bath given.', prescription: 'Antihistamine once daily for 10 days; hypoallergenic diet.', remarks: 'Avoid chicken-based treats.' },
+  s5: { diagnosis: 'Grade 2 tartar with mild gingivitis.', treatment: 'Scaling and polishing under sedation; no extractions needed.', prescription: 'Chlorhexidine oral gel once daily for 7 days.', remarks: 'Soft food for 2 days, then brush teeth 3 times a week.' },
+  s6: { diagnosis: 'Healthy; routine neuter.', treatment: 'Neutered under general anesthesia with no complications.', prescription: 'Pain reliever twice daily for 3 days.', remarks: 'Keep the e-collar on for 10 days and the wound dry.' },
+  s7: { diagnosis: 'Blood work (CBC and chemistry) within normal limits.', treatment: 'Blood drawn for CBC and blood chemistry.', prescription: '', remarks: 'No changes needed. Repeat yearly.' },
+  s8: { diagnosis: 'Slightly overgrown front teeth; otherwise healthy.', treatment: 'Teeth trimmed and diet reviewed.', prescription: 'Unlimited timothy hay; limit pellets to 1/4 cup a day.', remarks: 'Recheck the teeth in 2 months.' },
+};
+
+/** Normal body temperature (°C) by species, for the seeded records. */
+const TEMPERATURE_BY_SPECIES = { Dog: 38.6, Cat: 38.7, Rabbit: 39.1, Hamster: 37.4, Cockatiel: 41.2 };
+
+/** Every Completed visit carries the vet's medical record, as the app requires. */
+function addMedicalRecords(appointments) {
+  appointments.forEach((a) => {
+    if (a.status !== COMPLETED) return;
+    const pet = petSeeds.find((p) => p.id === a.petId);
+    a.medicalRecord = {
+      weight: pet.weight,
+      temperature: TEMPERATURE_BY_SPECIES[pet.species] ?? 38.5,
+      followUpDate: '',
+      ...(RECORD_BY_SERVICE[a.serviceId] ?? RECORD_BY_SERVICE.s1),
+      recordedAt: a.completedAt,
+    };
+  });
+}
+
 /** Finds a start time in the vet's shift where every pet gets a free back-to-back slot. */
 function findFreeTime({ date, vet, petIds, preferredTime, placed }) {
   const window = getVetWindow(vet, date);
@@ -389,6 +419,7 @@ function buildAppointments(today) {
   });
   assignQueueNumbers(placed);
   assignQueueStates(placed, today, lateVisitIds);
+  addMedicalRecords(placed);
   return placed;
 }
 

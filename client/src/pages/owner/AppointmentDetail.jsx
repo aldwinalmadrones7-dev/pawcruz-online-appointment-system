@@ -13,6 +13,7 @@ import DetailList from '../../components/DetailList';
 import EmptyState from '../../components/EmptyState';
 import ImageWithFallback from '../../components/ImageWithFallback';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MedicalRecordView from '../../components/MedicalRecordView';
 import PetAvatar from '../../components/PetAvatar';
 import RebookModal from '../../components/RebookModal';
 import StatusBadge from '../../components/StatusBadge';
@@ -203,6 +204,18 @@ export default function AppointmentDetail() {
           </div>
         </Col>
       </Row>
+
+      {appointment.status === COMPLETED && (
+        <div className="pc-card mt-4">
+          <div className="pc-card-body">
+            <div className="card-title-row">
+              <h2>Medical record</h2>
+              <span className="text-muted-soft small">{formatVetName(vet)}</span>
+            </div>
+            <MedicalRecordView record={appointment.medicalRecord} />
+          </div>
+        </div>
+      )}
 
       <RebookModal appointment={appointment} show={modal === 'rebook'} onHide={() => setModal(null)} onRebooked={setData} />
       <ConfirmModal

@@ -16,7 +16,7 @@ import { createAppointment, updateAppointment } from '../services/appointmentSer
 import { getOwners } from '../services/patientService';
 import { getPets } from '../services/petService';
 import { getLastBookableDate, isActive } from '../utils/appointmentRules';
-import { APPOINTMENT_SOURCES, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../utils/constants';
+import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../utils/constants';
 import { getManilaToday, isDateTimePast } from '../utils/dateUtils';
 import { describePet, formatDateLong, formatTimeRange, getFullName } from '../utils/formatters';
 import { isVetOnDuty } from '../utils/schedule';
@@ -36,7 +36,7 @@ function buildInitialValues(appointment, services = []) {
     startTime: appointment?.startTime ?? '',
     vetId: appointment?.vetId ?? '',
     source: appointment?.source ?? 'Walk-In',
-    status: appointment?.status ?? 'Confirmed',
+    status: appointment?.status ?? APPOINTMENT_STATUS.CONFIRMED,
     notes: appointment?.notes ?? '',
     checkIn: true, // new walk-ins for today join the live queue right away
   };
@@ -46,6 +46,9 @@ export default function AppointmentFormModal({ show, appointment, services, vets
   const isEdit = Boolean(appointment);
   const checkedIn = isEdit && isActive(appointment) && Boolean(appointment.checkedInAt);
   const scheduleLocked = isEdit && (!isActive(appointment) || isDateTimePast(appointment.date, appointment.startTime) || checkedIn);
+  // Completing needs a medical record (the Complete button), and a completed visit stays completed.
+  const isCompleted = appointment?.status === APPOINTMENT_STATUS.COMPLETED;
+  const statusOptions = isCompleted ? [APPOINTMENT_STATUS.COMPLETED] : APPOINTMENT_STATUSES.filter((status) => status !== APPOINTMENT_STATUS.COMPLETED);
   const validate = (values) => validateAppointmentForm(values, { isEdit, scheduleLocked });
   const form = useForm(buildInitialValues(appointment, services), validate);
   const { values, errors, setFieldValue, setValues } = form;
@@ -181,8 +184,8 @@ export default function AppointmentFormModal({ show, appointment, services, vets
                 {isEdit && (
                   <Col xs={6}>
                     <FormField label="Status" controlId="appt-status" required error={errors.status} className="mb-0">
-                      <Form.Select {...form.register('status')}>
-                        {APPOINTMENT_STATUSES.map((status) => (
+                      <Form.Select {...form.register('status')} disabled={isCompleted}>
+                        {statusOptions.map((status) => (
                           <option key={status}>{status}</option>
                         ))}
                       </Form.Select>

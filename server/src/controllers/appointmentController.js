@@ -16,8 +16,9 @@ import Vet from '../models/Vet.js';
 import { canTransition, compareByDateTime, getLastBookableDate } from '../shared/appointmentRules.js';
 import { ACTIVE_STATUSES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../shared/constants.js';
 import { getManilaToday, getWeekDateKeys, isDateTimePast } from '../shared/dateUtils.js';
+import { validateMedicalRecord } from '../shared/validators.js';
 import { addMinutesToTime, buildAvailability, getVetWindow, SLOT_MINUTES } from '../shared/schedule.js';
-import ApiError from '../utils/ApiError.js';
+import ApiError, { assertValid } from '../utils/ApiError.js';
 import { loadQueueBoard } from '../utils/queueBoard.js';
 
 const { CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
@@ -136,6 +137,23 @@ async function findAccessible(id, user) {
   return appointment;
 }
 
+/** Medical-record fields from the vet's form, with numbers and blanks normalized. */
+function cleanMedicalRecord(data) {
+  const optionalNumber = (value) => (value === '' || value === null || value === undefined ? null : Number(value));
+  return {
+    weight: optionalNumber(data.weight),
+    temperature: optionalNumber(data.temperature),
+    diagnosis: text(data.diagnosis, 500),
+    treatment: text(data.treatment, 1000),
+    prescription: text(data.prescription, 500),
+    followUpDate: text(data.followUpDate, 10),
+    remarks: text(data.remarks, 500),
+    recordedAt: new Date(),
+  };
+}
+
+const RECORD_REQUIRED = 'Add the medical record to complete this visit (use Complete, then fill in the record).';
+
 async function saveAndPopulate(appointment, changes) {
   Object.assign(appointment, changes);
   await appointment.save();
@@ -145,10 +163,10 @@ async function saveAndPopulate(appointment, changes) {
 
 // ---- Reads ------------------------------------------------------------------------
 
-/** GET /api/appointments (vet) — optional filters: status, date, vetId, ownerId, petId, source. */
+/** GET /api/appointments (vet) — optional filters: status, date, vetId, ownerId, petId, source, visitId. */
 export async function getAppointments(req, res) {
   const filter = {};
-  for (const key of ['status', 'date', 'source']) if (req.query[key]) filter[key] = String(req.query[key]);
+  for (const key of ['status', 'date', 'source', 'visitId']) if (req.query[key]) filter[key] = String(req.query[key]);
   for (const key of ['vetId', 'ownerId', 'petId']) {
     if (!req.query[key]) continue;
     if (!mongoose.isValidObjectId(req.query[key])) return res.json([]);
@@ -156,6 +174,18 @@ export async function getAppointments(req, res) {
   }
   const list = await Appointment.find(filter).populate(APPOINTMENT_POPULATE);
   res.json(list.sort(newestFirst));
+}
+
+/**
+ * GET /api/pets/:id/history — a pet's visit history: only completed visits, each with the
+ * vet's medical record (cancelled and not-yet-done visits are not part of it).
+ * Vets can read any patient's history; owners only their own pets'.
+ */
+export async function getPetHistory(req, res) {
+  const pet = mongoose.isValidObjectId(req.params.id) ? await Pet.findById(req.params.id) : null;
+  if (!pet || (!isVet(req.user) && String(pet.ownerId) !== String(req.user._id))) throw new ApiError('Pet not found.', 404);
+  const visits = await Appointment.find({ petId: pet._id, status: COMPLETED }).populate(APPOINTMENT_POPULATE);
+  res.json(visits.sort(newestFirst));
 }
 
 /** GET /api/appointments/mine — the logged-in pet owner's appointments. */
@@ -278,19 +308,30 @@ export async function cancelAppointment(req, res) {
   );
 }
 
-/** PATCH /api/appointments/:id/status (vet) — mark completed or cancel. */
+/**
+ * PATCH /api/appointments/:id/complete (vet) — saves the medical record and completes a
+ * confirmed visit on or after its day (also from the live queue, one pet at a time).
+ * The visit then shows in the pet's visit history.
+ */
+export async function completeAppointment(req, res) {
+  const appointment = await Appointment.findById(req.params.id);
+  if (!appointment) throw new ApiError('Appointment not found.', 404);
+  if (appointment.status !== CONFIRMED) throw new ApiError(`This visit is already ${appointment.status.toLowerCase()}.`, 400);
+  if (appointment.date > getManilaToday()) throw new ApiError('Visits can only be completed on or after their date.', 400);
+  assertValid(validateMedicalRecord(req.body));
+  res.json(await saveAndPopulate(appointment, { status: COMPLETED, completedAt: new Date(), medicalRecord: cleanMedicalRecord(req.body) }));
+}
+
+/** PATCH /api/appointments/:id/status (vet) — cancel. Completing goes through /complete, with a medical record. */
 export async function updateAppointmentStatus(req, res) {
   const status = String(req.body.status ?? '');
   const appointment = await Appointment.findById(req.params.id);
   if (!appointment) throw new ApiError('Appointment not found.', 404);
+  if (status === COMPLETED) throw new ApiError(RECORD_REQUIRED, 400);
   if (!canTransition(appointment.status, status)) {
     throw new ApiError(`A ${appointment.status.toLowerCase()} appointment can't be changed to ${status.toLowerCase() || 'that status'}.`, 400);
   }
-  if (status === COMPLETED && appointment.date > getManilaToday()) {
-    throw new ApiError('Visits can only be marked completed on or after their date.', 400);
-  }
   const changes = { status };
-  if (status === COMPLETED) changes.completedAt = new Date();
   if (status === CANCELLED) {
     changes.cancelReason = text(req.body.reason, 200) || 'Cancelled by the clinic';
     changes.cancelledBy = 'clinic';
@@ -306,6 +347,11 @@ export async function updateAppointment(req, res) {
   const service = await assertService(data.serviceId || current.serviceId);
   const status = data.status || current.status;
   if (!APPOINTMENT_STATUSES.includes(status)) throw new ApiError('Please choose a valid status.', 400, 'status');
+  // A completed visit and its medical record are part of the pet's history; completing needs a record.
+  if (current.status === COMPLETED && status !== COMPLETED) {
+    throw new ApiError("A completed visit is part of the pet's history and can't be reopened.", 400, 'status');
+  }
+  if (status === COMPLETED && current.status !== COMPLETED) throw new ApiError(RECORD_REQUIRED, 400, 'status');
   const source = APPOINTMENT_SOURCES.includes(data.source) ? data.source : current.source;
 
   const next = {
@@ -319,7 +365,6 @@ export async function updateAppointment(req, res) {
   if (ACTIVE_STATUSES.includes(status) && (scheduleChanged || reactivated)) {
     await assertBookable({ ...next, petIds: [String(current.petId)], excludeAppointmentId: current._id });
   }
-  if (status === COMPLETED && next.date > getManilaToday()) throw new ApiError('Future visits cannot be marked completed.', 400, 'status');
 
   const changes = {
     ...next,
@@ -341,9 +386,8 @@ export async function updateAppointment(req, res) {
     changes.cancelledBy = '';
     changes.cancelReason = '';
   }
-  // A reopened visit starts the live queue again; a newly completed one gets its finish time.
+  // A reopened (previously cancelled) visit starts the live queue again.
   if (reactivated) Object.assign(changes, QUEUE_RESET);
-  else if (status === COMPLETED && current.status !== COMPLETED) changes.completedAt = new Date();
   res.json(await saveAndPopulate(current, changes));
 }
 

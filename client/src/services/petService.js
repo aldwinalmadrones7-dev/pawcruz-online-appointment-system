@@ -16,6 +16,12 @@ export async function getPets({ ownerId } = {}) {
   return data;
 }
 
+/** GET /pets/:id/history — completed visits only, newest first, each with its medical record. */
+export async function getPetHistory(id) {
+  const { data } = await axiosClient.get(`/pets/${id}/history`);
+  return data;
+}
+
 /** POST /pets — owners add pets to their own account. */
 export async function createPet(pet) {
   const { data } = await axiosClient.post('/pets', pet);

@@ -611,6 +611,16 @@ img {
   padding: 1.5rem;
 }
 
+/* Form modals wrap header, body and footer in a <form>: let the body scroll and keep the footer buttons visible. */
+.modal-dialog-scrollable .modal-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
 .dropdown-menu {
   --bs-dropdown-bg: var(--surface);
   --bs-dropdown-border-color: var(--border);

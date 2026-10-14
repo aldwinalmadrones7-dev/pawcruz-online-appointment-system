@@ -38,8 +38,5 @@ export const checkInVisit = (visitId) => act(visitId, 'check-in');
 /** PATCH /queue/:visitId/call — the vet calls the patient in (one at a time per vet). */
 export const callInVisit = (visitId) => act(visitId, 'call');
 
-/** PATCH /queue/:visitId/complete — the consultation is finished. */
-export const completeVisit = (visitId) => act(visitId, 'complete');
-
 /** PATCH /queue/:visitId/undo — one step back (with the vet → waiting → not checked in). */
 export const undoQueueStep = (visitId) => act(visitId, 'undo');

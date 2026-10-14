@@ -13,6 +13,7 @@ import AppointmentFormModal from '../../components/AppointmentFormModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MedicalRecordModal from '../../components/MedicalRecordModal';
 import PageHeader from '../../components/PageHeader';
 import PaginationBar from '../../components/PaginationBar';
 import PetAvatar from '../../components/PetAvatar';
@@ -31,7 +32,7 @@ import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES } from '.
 import { getManilaToday } from '../../utils/dateUtils';
 import { formatDate, formatDateShort, formatTimeRange, formatVetName, getFullName } from '../../utils/formatters';
 
-const { COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { CANCELLED } = APPOINTMENT_STATUS;
 const CANCEL_REASONS = ['Veterinarian unavailable', 'Owner called to cancel', 'Did not arrive (no-show)', 'Clinic schedule change', 'Duplicate booking'];
 
 export default function ManageAppointments() {
@@ -49,7 +50,7 @@ export default function ManageAppointments() {
 
   const [selected, setSelected] = useState(null);
   // The dashboard's "Register walk-in" button links here with ?new=1 to open the form right away.
-  const [modal, setModal] = useState(() => (searchParams.get('new') === '1' ? 'form' : null)); // 'form' | 'rebook' | 'cancel' | 'delete' | null
+  const [modal, setModal] = useState(() => (searchParams.get('new') === '1' ? 'form' : null)); // 'form' | 'rebook' | 'cancel' | 'delete' | 'record' | null
   const [cancelReason, setCancelReason] = useState(CANCEL_REASONS[0]);
   const [busyId, setBusyId] = useState(null);
 
@@ -89,7 +90,7 @@ export default function ManageAppointments() {
     try {
       const updated = await updateAppointmentStatus(appointment.id, nextStatus, reason);
       replaceAppointment(updated);
-      toast.success(`${updated.pet.name}'s visit ${nextStatus === COMPLETED ? 'marked as completed' : 'was cancelled'}.`);
+      toast.success(`${updated.pet.name}'s visit was cancelled.`);
       setModal(null);
     } catch (err) {
       toast.error(err.message);
@@ -135,7 +136,7 @@ export default function ManageAppointments() {
     return (
       <>
         {canComplete(appointment) && (
-          <Button variant="brand" size="sm" className={cls} title="Mark completed" aria-label={`Mark ${appointment.pet.name}'s visit completed`} disabled={busy} onClick={() => changeStatus(appointment, COMPLETED)}>
+          <Button variant="brand" size="sm" className={cls} title="Add medical record & complete" aria-label={`Add ${appointment.pet.name}'s medical record and complete the visit`} disabled={busy} onClick={() => open('record', appointment)}>
             <FiCheckCircle aria-hidden="true" />
             {label('Complete')}
           </Button>
@@ -313,6 +314,8 @@ export default function ManageAppointments() {
       {services && vets && (
         <AppointmentFormModal show={modal === 'form'} appointment={selected} services={services} vets={vets} onHide={() => setModal(null)} onSaved={handleSaved} />
       )}
+
+      <MedicalRecordModal appointment={selected} show={modal === 'record'} onHide={() => setModal(null)} onCompleted={replaceAppointment} />
 
       <RebookModal appointment={selected} show={modal === 'rebook'} onHide={() => setModal(null)} onRebooked={replaceAppointment} />
 

@@ -69,9 +69,14 @@ export function cancelAppointment(id, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/cancel`, { reason }));
 }
 
-/** PATCH /appointments/:id/status (vet) — mark completed or cancel. */
+/** PATCH /appointments/:id/status (vet) — cancel. Completing needs a medical record: completeAppointment(). */
 export function updateAppointmentStatus(id, status, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/status`, { status, reason }));
+}
+
+/** PATCH /appointments/:id/complete (vet) — saves the medical record and completes the visit. */
+export function completeAppointment(id, medicalRecord) {
+  return write(axiosClient.patch(`/appointments/${id}/complete`, medicalRecord));
 }
 
 /** PUT /appointments/:id (vet) — edit reason, notes, source, status and (for upcoming visits) the schedule. */

@@ -1,7 +1,8 @@
 /**
  * LiveQueue — The veterinarian's queue desk (final-vet's Queue Management): today's numbers,
  * then one lane per vet (yours first). Check pets in as they arrive, call them in one at a
- * time, complete each visit or step back, and register walk-ins straight into the queue.
+ * time, complete each visit with a medical record per pet (it then goes to Animal Patients) or
+ * step back, and register walk-ins straight into the queue.
  * It refreshes every 15 seconds; the public Live Queue page (/queue) shows the same queue.
  */
 import { useMemo, useState } from 'react';
@@ -12,6 +13,7 @@ import { toast } from 'react-toastify';
 import AppointmentFormModal from '../../components/AppointmentFormModal';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MedicalRecordModal from '../../components/MedicalRecordModal';
 import PageHeader from '../../components/PageHeader';
 import QueueLaneManager from '../../components/QueueLaneManager';
 import SearchBar from '../../components/SearchBar';
@@ -20,10 +22,12 @@ import useAsync from '../../hooks/useAsync';
 import useAuth from '../../hooks/useAuth';
 import useDebounce from '../../hooks/useDebounce';
 import usePolling from '../../hooks/usePolling';
-import { callInVisit, checkInVisit, completeVisit, getQueueBoard, undoQueueStep } from '../../services/queueService';
+import { getAppointments } from '../../services/appointmentService';
+import { callInVisit, checkInVisit, getQueueBoard, undoQueueStep } from '../../services/queueService';
 import { getServices } from '../../services/serviceService';
 import { getVets } from '../../services/vetService';
-import { QUEUE_REFRESH_MS, QUEUE_STAGE } from '../../utils/constants';
+import { compareByDateTime } from '../../utils/appointmentRules';
+import { APPOINTMENT_STATUS, QUEUE_REFRESH_MS, QUEUE_STAGE } from '../../utils/constants';
 import { formatClockTime, formatDateLong, formatPetNames } from '../../utils/formatters';
 
 const ACTIONS = {
@@ -34,10 +38,6 @@ const ACTIONS = {
   call: {
     run: callInVisit,
     done: (ticket) => `${ticket.queueNumber} called in — ${formatPetNames(ticket.pets)} is with the vet.`,
-  },
-  complete: {
-    run: completeVisit,
-    done: (ticket) => `${ticket.queueNumber} completed — ${formatPetNames(ticket.pets)}'s visit is done.`,
   },
   undo: {
     run: undoQueueStep,
@@ -69,7 +69,31 @@ export default function LiveQueue() {
     [board, user.vetId],
   );
 
+  // Completing a visit = the medical record for each of its pets, one form after another.
+  const [recordQueue, setRecordQueue] = useState([]);
+  const recordFor = recordQueue[0] ?? null;
+
+  async function startCompleting(ticket) {
+    setBusyId(ticket.id);
+    try {
+      const open = await getAppointments({ visitId: ticket.id, status: APPOINTMENT_STATUS.CONFIRMED });
+      if (!open.length) throw new Error(`Queue ${ticket.queueNumber} has no open visits left.`);
+      setRecordQueue([...open].sort(compareByDateTime));
+    } catch (err) {
+      toast.error(err.message);
+      reload();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const handleRecordSaved = () => {
+    setRecordQueue((list) => list.slice(1));
+    reload();
+  };
+
   async function handleAction(action, ticket) {
+    if (action === 'complete') return startCompleting(ticket);
     setBusyId(ticket.id);
     try {
       setData(await ACTIONS[action].run(ticket.id));
@@ -150,6 +174,15 @@ export default function LiveQueue() {
           )}
         </>
       )}
+
+      <MedicalRecordModal
+        key={recordFor?.id}
+        appointment={recordFor}
+        show={Boolean(recordFor)}
+        onHide={() => setRecordQueue([])}
+        onCompleted={handleRecordSaved}
+        openPatientAfterSave={recordQueue.length === 1}
+      />
 
       {services && vets && (
         <AppointmentFormModal show={showWalkIn || walkInRequested} appointment={null} services={services} vets={vets} onHide={closeWalkIn} onSaved={() => reload()} />

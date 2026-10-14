@@ -2,7 +2,8 @@
  * Appointment — One pet's 10-minute slot with one vet. A multi-pet visit is several
  * appointments that share a `visitId`, booking `reference` and `queueNumber`.
  * On the visit day it moves through the live queue: checkedInAt (arrived, waiting) →
- * servedAt (with the vet) → completedAt (status Completed).
+ * servedAt (with the vet) → completedAt (status Completed). Completing needs the vet's
+ * `medicalRecord`, which then becomes part of the pet's visit history.
  * Two partial unique indexes stop double-booking inside the database itself: a vet (or a
  * pet) can never have two Confirmed appointments starting at the same date and time.
  */
@@ -11,6 +12,21 @@ import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, CONSULTA
 import toJSONPlugin from './plugins/toJSON.js';
 
 const { ObjectId } = mongoose.Schema.Types;
+
+/** What the vet found and did — written once, when the visit is completed. */
+const medicalRecordSchema = new mongoose.Schema(
+  {
+    weight: { type: Number, default: null, min: 0, max: 150 }, // kg on the day of the visit
+    temperature: { type: Number, default: null, min: 30, max: 45 }, // °C
+    diagnosis: { type: String, required: true, trim: true, maxlength: 500 },
+    treatment: { type: String, required: true, trim: true, maxlength: 1000 },
+    prescription: { type: String, default: '', trim: true, maxlength: 500 },
+    followUpDate: { type: String, default: '' }, // "YYYY-MM-DD" or ''
+    remarks: { type: String, default: '', trim: true, maxlength: 500 },
+    recordedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
 
 const appointmentSchema = new mongoose.Schema(
   {
@@ -33,6 +49,7 @@ const appointmentSchema = new mongoose.Schema(
     checkedInAt: { type: Date, default: null }, // arrived and checked in → waiting in the live queue
     servedAt: { type: Date, default: null }, // called in by the vet → being served
     completedAt: { type: Date, default: null }, // consultation finished
+    medicalRecord: { type: medicalRecordSchema, default: null }, // written by the vet when completing
   },
   { timestamps: true },
 );

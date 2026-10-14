@@ -25,7 +25,7 @@ export async function getPatients(req, res) {
       return {
         ...pet.toJSON(),
         owner: ownersById.get(String(pet.ownerId)) ?? null,
-        totalVisits: visits.length,
+        totalVisits: completedDates.length, // cancelled visits are not part of the history
         upcomingVisits: visits.filter(isUpcoming).length,
         lastVisit: completedDates.at(-1) ?? null,
       };

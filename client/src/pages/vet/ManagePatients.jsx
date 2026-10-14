@@ -1,24 +1,26 @@
 /**
  * ManagePatients — Read-only, searchable and paginated list of animal patients (pets)
- * with their owners, plus a details modal showing the pet's profile and visit history.
+ * with their owners, plus a details modal showing the pet's profile and visit history
+ * (completed visits with the vet's medical records; cancelled visits are not part of it).
+ * ?pet=<id> opens that patient right away — where a vet lands after saving a record.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Col, Form, Modal, Row, Table } from 'react-bootstrap';
 import { FiEye, FiMail, FiMapPin, FiPhone, FiSearch, FiUser } from 'react-icons/fi';
+import { useSearchParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import PageHeader from '../../components/PageHeader';
 import PaginationBar from '../../components/PaginationBar';
 import PetAvatar from '../../components/PetAvatar';
 import SearchBar from '../../components/SearchBar';
-import StatusBadge from '../../components/StatusBadge';
+import VisitHistory from '../../components/VisitHistory';
 import useAsync from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
 import usePagination from '../../hooks/usePagination';
-import { getAppointments } from '../../services/appointmentService';
 import { getPatients } from '../../services/patientService';
 import { getSpeciesFamily } from '../../utils/petOptions';
-import { describePet, formatDate, formatIsoDate, formatTime, formatVetName, getFullName } from '../../utils/formatters';
+import { describePet, formatDate, formatIsoDate, getFullName } from '../../utils/formatters';
 
 const SPECIES_FILTERS = [
   { value: '', label: 'All species' },
@@ -32,34 +34,29 @@ const SPECIES_FILTERS = [
   { value: 'other', label: 'Others' },
 ];
 
-function VisitHistory({ petId }) {
-  const { data, loading } = useAsync(() => getAppointments({ petId }), [petId]);
-  if (loading && !data) return <LoadingSpinner compact label="Loading history…" />;
-  if (!data?.length) return <p className="text-muted-soft mb-0">No visits yet.</p>;
-  return (
-    <ul className="history-list">
-      {data.map((appointment) => (
-        <li key={appointment.id}>
-          <span>
-            <strong>{appointment.service.name}</strong>
-            <small>
-              {formatDate(appointment.date, 'MMM d, yyyy')} · {formatTime(appointment.startTime)} · {formatVetName(appointment.vet)} · queue {appointment.queueNumber}
-            </small>
-          </span>
-          <StatusBadge status={appointment.status} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export default function ManagePatients() {
   const { data, loading, error, reload } = useAsync(() => getPatients(), []);
   const [search, setSearch] = useState('');
   const [family, setFamily] = useState('');
   const query = useDebounce(search, 300).trim().toLowerCase();
-  const [selected, setSelected] = useState(null);
+  const [picked, setPicked] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ?pet=<id> opens that patient's details, e.g. right after a vet saves a medical record.
+  const [focusPetId, setFocusPetId] = useState(() => searchParams.get('pet'));
+  const focused = focusPetId ? (data?.find((p) => p.id === focusPetId) ?? null) : null;
+  const selected = focused ?? picked;
+  const detailsOpen = Boolean(focused) || showDetails;
+
+  // Drop ?pet= from the address bar so a refresh doesn't reopen it.
+  useEffect(() => {
+    if (searchParams.has('pet')) setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const closeDetails = () => {
+    setShowDetails(false);
+    setFocusPetId(null);
+  };
 
   const patients = useMemo(
     () =>
@@ -71,13 +68,13 @@ export default function ManagePatients() {
   const pagination = usePagination(patients, { initialPageSize: 10, resetKey: `${query}|${family}` });
 
   const openDetails = (patient) => {
-    setSelected(patient);
+    setPicked(patient);
     setShowDetails(true);
   };
 
   return (
     <div>
-      <PageHeader eyebrow="Veterinarian portal" title="Animal patients" subtitle="Every registered pet with its owner and visit summary. Pet records are read-only here — owners update them in their account." />
+      <PageHeader eyebrow="Veterinarian portal" title="Animal patients" subtitle="Every registered pet with its owner and completed visits. Open a patient to read the medical records. Every record saved when completing a visit is added here." />
 
       <div className="pc-card">
         <div className="pc-card-body">
@@ -106,7 +103,7 @@ export default function ManagePatients() {
                       <th scope="col">Patient</th>
                       <th scope="col">Owner</th>
                       <th scope="col" className="text-center">
-                        Visits
+                        Completed visits
                       </th>
                       <th scope="col">Last visit</th>
                       <th scope="col" className="text-end">
@@ -153,7 +150,7 @@ export default function ManagePatients() {
                       <strong className="d-block">{patient.name}</strong>
                       <small className="text-muted-soft d-block text-truncate">{describePet(patient)}</small>
                       <small className="text-muted-soft">
-                        {getFullName(patient.owner)} · {patient.totalVisits} visits
+                        {getFullName(patient.owner)} · {patient.totalVisits} completed visit{patient.totalVisits === 1 ? '' : 's'}
                       </small>
                     </div>
                     <Button variant="soft" size="sm" className="btn-icon" onClick={() => openDetails(patient)} aria-label={`View ${patient.name}`}>
@@ -170,7 +167,7 @@ export default function ManagePatients() {
         </div>
       </div>
 
-      <Modal show={showDetails} onHide={() => setShowDetails(false)} centered size="lg" scrollable aria-labelledby="patient-details-title">
+      <Modal show={detailsOpen} onHide={closeDetails} centered size="lg" scrollable aria-labelledby="patient-details-title">
         <Modal.Header closeButton>
           <Modal.Title id="patient-details-title">Patient details</Modal.Title>
         </Modal.Header>
@@ -239,12 +236,12 @@ export default function ManagePatients() {
                 </div>
               </Col>
             </Row>
-            <h4 className="h6 mt-4 mb-2">Visit history</h4>
+            <h4 className="h6 mt-4 mb-2">Visit history &amp; medical records</h4>
             <VisitHistory petId={selected.id} />
           </Modal.Body>
         )}
         <Modal.Footer>
-          <Button variant="soft" onClick={() => setShowDetails(false)}>
+          <Button variant="soft" onClick={closeDetails}>
             Close
           </Button>
         </Modal.Footer>

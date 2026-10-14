@@ -1,7 +1,7 @@
 /**
  * queueController.js — The live clinic queue (final-vet's Queue Management).
  * A visit joins the queue when the pet arrives and is checked in (Waiting); the vet calls it
- * in (Serving) and then completes the consultation (Completed). Each vet serves one visit at
+ * in (Serving) and then completes each pet with its medical record (Completed). Each vet serves one visit at
  * a time. The public board shows only queue numbers and pet names, pet owners see their own
  * place in line, and vets get the full board with owner details to run the queue.
  * Every action answers with the refreshed board.
@@ -12,7 +12,7 @@ import { getManilaToday } from '../shared/dateUtils.js';
 import ApiError from '../utils/ApiError.js';
 import { loadQueueBoard } from '../utils/queueBoard.js';
 
-const { CONFIRMED, COMPLETED } = APPOINTMENT_STATUS;
+const { CONFIRMED } = APPOINTMENT_STATUS;
 
 // ---- Views ------------------------------------------------------------------------------
 
@@ -116,13 +116,8 @@ export async function callIn(req, res) {
   res.json(await loadQueueBoard());
 }
 
-/** PATCH /api/queue/:visitId/complete — consultation finished: Serving → Completed. */
-export async function completeVisit(req, res) {
-  const rows = await findOpenVisit(req.params.visitId);
-  if (!rows.some((a) => a.servedAt)) throw new ApiError(`Call queue ${rows[0].queueNumber} in before completing the visit.`, 409);
-  await Appointment.updateMany({ _id: { $in: idsOf(rows) }, status: CONFIRMED }, { $set: { status: COMPLETED, completedAt: new Date() } });
-  res.json(await loadQueueBoard());
-}
+// Completing (Serving → Completed) happens per pet with its medical record:
+// PATCH /api/appointments/:id/complete. The visit leaves the queue once every pet is done.
 
 /** PATCH /api/queue/:visitId/undo — one step back: Serving → Waiting, or Waiting → not checked in. */
 export async function undoStep(req, res) {
