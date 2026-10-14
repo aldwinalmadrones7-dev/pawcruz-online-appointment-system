@@ -12,6 +12,13 @@ try {
   await connectDB();
 } catch (err) {
   console.error(`\nCould not start the API: ${err.message}\n`);
+  if (/bad auth|authentication failed/i.test(err.message)) {
+    console.error(
+      'MongoDB rejected the username/password in MONGODB_URI (server/.env).\n' +
+        'In Atlas: Security > Database Access > Edit your user > Edit Password, then paste the new\n' +
+        'password into MONGODB_URI (URL-encode special characters like @ : / ? #).\n',
+    );
+  }
   process.exit(1);
 }
 
