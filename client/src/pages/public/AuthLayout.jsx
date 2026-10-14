@@ -10,7 +10,7 @@ import BrandLogo from '../../components/BrandLogo';
 import ImageWithFallback from '../../components/ImageWithFallback';
 import ThemeToggle from '../../components/ThemeToggle';
 
-const PERKS = ['Book for one pet or several at once', 'Real-time 10-minute slots, every day', 'A live queue: see who’s in line before you go'];
+const PERKS = ['Book for one pet or several at once', 'Real-time 10-minute slots, every day', 'Queue number the moment you book'];
 
 export default function AuthLayout({ title, subtitle, children, wide = false }) {
   return (

@@ -18,7 +18,7 @@ import Vet from '../models/Vet.js';
 import { buildSeedData } from './seedData.js';
 
 const MODELS = [Appointment, Pet, User, Vet, Service];
-const REFERENCE_FIELDS = ['ownerId', 'petId', 'vetId', 'serviceId', 'userId'];
+const REFERENCE_FIELDS = ['ownerId', 'petId', 'vetId', 'serviceId'];
 
 /** Deletes every clinic document (contact messages are kept). */
 export async function clearDatabase() {
@@ -75,6 +75,7 @@ export async function seedDatabase() {
   const data = withObjectIds(buildSeedData());
   await hashPasswords(data.users);
   await clearDatabase();
+  await Appointment.syncIndexes(); // drop slot locks left by older versions of the schema
   return {
     services: await insertValidated(Service, data.services),
     vets: await insertValidated(Vet, data.vets),
@@ -98,7 +99,8 @@ if (runFromCommandLine) {
       const counts = await seedDatabase();
       console.log('Demo data inserted:', counts);
       console.log(
-        '\nTest accounts:\n  Pet owner     owner@pawcruz.ph / Owner123!\n  Veterinarian  redmond.lopez@pawcruz.ph / Vet12345!\n  Veterinarian  neil.cruz@pawcruz.ph / Vet12345!',
+        '\nTest accounts:\n  Pet owner  owner@pawcruz.ph / Owner123!\n  Admin      admin@pawcruz.ph / Admin123!' +
+          '\n  Vet        neil.cruz@pawcruz.ph / Vet12345!\n  Vet        redmond.lopez@pawcruz.ph / Vet12345!',
       );
     }
     await disconnectDB();

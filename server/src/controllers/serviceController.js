@@ -1,6 +1,6 @@
 /**
  * serviceController.js — Clinic services (also the "reason for visit" list when booking):
- * public listing/details plus create, update and delete by veterinarians.
+ * public listing/details plus admin create, update and delete.
  */
 import Appointment from '../models/Appointment.js';
 import Service from '../models/Service.js';
@@ -47,7 +47,7 @@ export async function getServiceById(req, res) {
   res.json(await findService(req.params.id));
 }
 
-/** POST /api/services (vet) */
+/** POST /api/services (admin) */
 export async function createService(req, res) {
   assertValid(validateService(req.body));
   const fields = cleanService(req.body);
@@ -55,7 +55,7 @@ export async function createService(req, res) {
   res.status(201).json(await Service.create(fields));
 }
 
-/** PUT /api/services/:id (vet) — new prices apply to future bookings only. */
+/** PUT /api/services/:id (admin) — new prices apply to future bookings only. */
 export async function updateService(req, res) {
   const service = await findService(req.params.id);
   assertValid(validateService(req.body));
@@ -66,7 +66,7 @@ export async function updateService(req, res) {
   res.json(service);
 }
 
-/** DELETE /api/services/:id (vet) — blocked while upcoming bookings use it as their reason for visit. */
+/** DELETE /api/services/:id (admin) — blocked while upcoming bookings use it as their reason for visit. */
 export async function deleteService(req, res) {
   const service = await findService(req.params.id);
   const candidates = await Appointment.find({ serviceId: service._id, status: { $in: ACTIVE_STATUSES }, date: { $gte: getManilaToday() } }, 'date startTime').lean();

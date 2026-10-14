@@ -1,5 +1,5 @@
 /**
- * ManageServices — Veterinarians' list of clinic services (search, category filter,
+ * ManageServices — Admin list of clinic services (search, category filter,
  * pagination) with add, edit and delete in modals.
  */
 import { useMemo, useState } from 'react';
@@ -75,7 +75,7 @@ export default function ManageServices() {
   return (
     <div>
       <PageHeader
-        eyebrow="Veterinarian portal"
+        eyebrow="Admin panel"
         title="Services"
         subtitle="The clinic’s services and starting prices. Pet owners pick one as their reason for visit when booking."
         actions={

@@ -1,25 +1,20 @@
 /**
- * Profile — For both account types: view and edit personal information (validated), preview
- * a new avatar, and change the password. Veterinarians also edit their public vet profile and
- * schedule here (?tab=schedule opens that tab).
+ * Profile — View and edit personal information (validated), preview a new avatar,
+ * and change the account password.
  */
 import { useEffect, useRef, useState } from 'react';
 import { Button, Col, Form, Row, Spinner, Tab, Tabs } from 'react-bootstrap';
-import { FaUserMd } from 'react-icons/fa';
 import { FiCamera, FiLock, FiMail, FiPhone, FiSave, FiUser } from 'react-icons/fi';
-import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Avatar from '../../components/Avatar';
 import FormField from '../../components/FormField';
 import PageHeader from '../../components/PageHeader';
 import PasswordChecklist from '../../components/PasswordChecklist';
 import PasswordInput from '../../components/PasswordInput';
-import VetProfileForm from '../../components/VetProfileForm';
 import useAuth from '../../hooks/useAuth';
 import useForm from '../../hooks/useForm';
 import { changePassword, updateProfile } from '../../services/authService';
-import { ROLE_LABELS, ROLES } from '../../utils/constants';
-import { formatIsoDate, getDisplayName, getFullName } from '../../utils/formatters';
+import { formatIsoDate, getFullName } from '../../utils/formatters';
 import { sanitizePhoneInput, validatePasswordChange, validateProfile } from '../../utils/validators';
 
 const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -36,8 +31,6 @@ const profileValues = (user) => ({
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
-  const [searchParams] = useSearchParams();
-  const isVet = user.role === ROLES.VET;
   const [avatarUrl, setAvatarUrl] = useState(null);
   const fileInput = useRef(null);
 
@@ -95,15 +88,7 @@ export default function Profile() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Account"
-        title="My profile"
-        subtitle={
-          isVet
-            ? 'Your name, email and mobile number also appear on your public vet profile. Set your duty days and shift under Vet profile & schedule.'
-            : 'Keep your contact details up to date so the clinic can reach you about your pets.'
-        }
-      />
+      <PageHeader eyebrow="Account" title="My profile" subtitle="Keep your contact details up to date so the clinic can reach you about your pets." />
       <Row className="g-4">
         <Col lg={4}>
           <div className="pc-card profile-card">
@@ -115,10 +100,8 @@ export default function Profile() {
                 </button>
                 <input ref={fileInput} type="file" accept={AVATAR_TYPES.join(',')} onChange={handleAvatarChange} className="d-none" aria-hidden="true" tabIndex={-1} />
               </div>
-              <h2 className="h4 mt-3 mb-0">{getDisplayName(user)}</h2>
-              <p className="mb-2">
-                {ROLE_LABELS[user.role]} · member since {formatIsoDate(user.createdAt)}
-              </p>
+              <h2 className="h4 mt-3 mb-0">{getFullName(user)}</h2>
+              <p className="mb-2">Pet owner · member since {formatIsoDate(user.createdAt)}</p>
               {avatarUrl && <p className="avatar-note">Preview only — not saved yet.</p>}
               <ul className="profile-facts">
                 <li>
@@ -135,7 +118,7 @@ export default function Profile() {
         <Col lg={8}>
           <div className="pc-card">
             <div className="pc-card-body">
-              <Tabs defaultActiveKey={isVet && searchParams.get('tab') === 'schedule' ? 'schedule' : 'info'} id="profile-tabs" className="mb-4" mountOnEnter>
+              <Tabs defaultActiveKey="info" id="profile-tabs" className="mb-4" mountOnEnter>
                 <Tab
                   eventKey="info"
                   title={
@@ -168,15 +151,7 @@ export default function Profile() {
                         />
                       </Col>
                     </Row>
-                    <FormField
-                      label={isVet ? 'Address' : 'Home address'}
-                      as="textarea"
-                      rows={2}
-                      maxLength={200}
-                      placeholder="Street, barangay, city"
-                      error={errors.address}
-                      {...profileForm.register('address')}
-                    />
+                    <FormField label="Home address" as="textarea" rows={2} maxLength={200} placeholder="Street, barangay, city" error={errors.address} {...profileForm.register('address')} />
                     <div className="form-actions">
                       <Button variant="soft" onClick={() => profileForm.reset(profileValues(user))} disabled={!isDirty || profileForm.submitting}>
                         Discard changes
@@ -195,19 +170,6 @@ export default function Profile() {
                     </div>
                   </Form>
                 </Tab>
-
-                {isVet && (
-                  <Tab
-                    eventKey="schedule"
-                    title={
-                      <>
-                        <FaUserMd aria-hidden="true" /> Vet profile &amp; schedule
-                      </>
-                    }
-                  >
-                    <VetProfileForm />
-                  </Tab>
-                )}
 
                 <Tab
                   eventKey="password"

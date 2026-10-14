@@ -1,6 +1,7 @@
 /**
  * petService.js — Pets API: pet owners manage their own pets (add, edit, remove);
- * veterinarians can read any owner's pets (for walk-in bookings).
+ * admins can read any owner's pets (for walk-in bookings); anyone allowed to see a pet
+ * can read its visit history (completed visits with medical records).
  */
 import axiosClient from '../api/axiosClient';
 
@@ -10,7 +11,7 @@ export async function getMyPets() {
   return data;
 }
 
-/** GET /pets?ownerId= (vet) */
+/** GET /pets?ownerId= (admin) */
 export async function getPets({ ownerId } = {}) {
   const { data } = await axiosClient.get('/pets', { params: { ownerId } });
   return data;

@@ -1776,7 +1776,7 @@
   font-weight: 800;
 }
 
-/* ---------- Modals: reschedule & clinic forms ---------- */
+/* ---------- Modals: reschedule & admin forms ---------- */
 .reschedule-current,
 .locked-schedule {
   display: flex;

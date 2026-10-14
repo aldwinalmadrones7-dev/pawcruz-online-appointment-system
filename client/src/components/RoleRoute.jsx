@@ -1,5 +1,5 @@
 /**
- * RoleRoute — Lets only the listed roles through (e.g. veterinarians for /vet/*).
+ * RoleRoute — Lets only the listed roles through (e.g. admins for /admin/*).
  * Everyone else sees the "403 Not Authorized" page instead.
  */
 import { Outlet } from 'react-router-dom';

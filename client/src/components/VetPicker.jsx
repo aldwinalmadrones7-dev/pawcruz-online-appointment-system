@@ -1,6 +1,6 @@
 /**
  * VetPicker — Compact list of veterinarians who are free at the chosen time;
- * pick one (radio behavior). Used in the rebook modal and the clinic appointment form.
+ * pick one (radio behavior). Used in the rebook modal and the admin appointment form.
  */
 import { FaUserMd } from 'react-icons/fa';
 import { FiCheck } from 'react-icons/fi';

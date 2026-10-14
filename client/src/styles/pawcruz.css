@@ -1,5 +1,5 @@
 /* pawcruz.css — Styles for the veterinary features: pet avatars and cards, the
-   vet picker, 10-minute slot grid, queue numbers, pet strips and the veterinarian portal. */
+   vet picker, 10-minute slot grid, queue numbers, pet strips and admin vet cards. */
 
 /* ---------- Pet avatar (species icon) ---------- */
 .pet-avatar {
@@ -197,7 +197,7 @@
   color: var(--text-muted);
 }
 
-/* ---------- Walk-in form (veterinarian portal) ---------- */
+/* ---------- Admin walk-in form ---------- */
 .pet-checklist {
   display: grid;
   gap: 0.45rem;
@@ -565,7 +565,23 @@
   gap: 1rem;
 }
 
-/* ---------- Veterinarian portal ---------- */
+/* ---------- Admin ---------- */
+.admin-vet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.admin-vet-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .duty-photo {
   flex-shrink: 0;
   width: 40px;
@@ -595,7 +611,7 @@
 }
 
 
-/* Compact vet-portal table: tighter cells and an icon-only "more" menu */
+/* Compact admin table: tighter cells and an icon-only "more" menu */
 .pc-table.is-compact tbody td,
 .pc-table.is-compact thead th {
   padding-left: 0.7rem;

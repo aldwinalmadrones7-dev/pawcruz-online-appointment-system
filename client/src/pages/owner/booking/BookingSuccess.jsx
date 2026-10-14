@@ -38,7 +38,7 @@ export default function BookingSuccess({ booking, onBookAnother }) {
         <SparkleIcon size={18} className="burst-spark spark-3" />
       </div>
       <h1 className="success-title">{appointments.length > 1 ? 'Appointments booked!' : 'Appointment booked!'}</h1>
-      <p className="success-text">Your visit is confirmed. Show your queue number at the front desk when you arrive.</p>
+      <p className="success-text">Your booking request is in. The clinic will accept it and assign it to your vet. You can follow its status under Appointments. Show your queue number at the front desk when you arrive.</p>
 
       <div className="queue-hero">
         <span>Your queue number</span>
