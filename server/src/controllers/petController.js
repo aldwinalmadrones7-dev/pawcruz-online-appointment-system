@@ -1,9 +1,9 @@
 /**
  * petController.js — Pet owners manage their own pets (add, edit, remove);
- * veterinarians can read any owner's pets (for walk-in bookings) and edit them.
+ * admins can read any owner's pets (for walk-in bookings) and edit them.
  */
 import mongoose from 'mongoose';
-import { isVet } from '../middleware/auth.js';
+import { isAdmin } from '../middleware/auth.js';
 import Appointment from '../models/Appointment.js';
 import Pet from '../models/Pet.js';
 import { ACTIVE_STATUSES, ROLES } from '../shared/constants.js';
@@ -28,10 +28,10 @@ function cleanPet(data) {
   };
 }
 
-/** Pets the user may change: their own (owners) or any (vets). Others look "not found". */
+/** Pets the user may change: their own (owners) or any (admins). Others look "not found". */
 async function findEditable(id, user) {
   const pet = await Pet.findById(id);
-  if (!pet || (!isVet(user) && String(pet.ownerId) !== String(user._id))) throw new ApiError('Pet not found.', 404);
+  if (!pet || (!isAdmin(user) && String(pet.ownerId) !== String(user._id))) throw new ApiError('Pet not found.', 404);
   return pet;
 }
 
@@ -40,7 +40,7 @@ export async function getMyPets(req, res) {
   res.json(await Pet.find({ ownerId: req.user._id }).sort({ name: 1 }));
 }
 
-/** GET /api/pets?ownerId= (vet) */
+/** GET /api/pets?ownerId= (admin) */
 export async function getPets(req, res) {
   const filter = {};
   if (req.query.ownerId) {

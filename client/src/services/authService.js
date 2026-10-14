@@ -34,7 +34,7 @@ export async function login({ email, password }) {
   return data;
 }
 
-/** POST /auth/register → { token, user }. role is "owner" or "vet" (vets also send licenseNo, specialty and clinicCode). */
+/** POST /auth/register → { token, user }. New accounts are always pet owners. */
 export async function register(details) {
   const { data } = await axiosClient.post('/auth/register', details);
   saveSession(data);

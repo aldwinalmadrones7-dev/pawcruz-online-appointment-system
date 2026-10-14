@@ -1,7 +1,6 @@
 /**
- * Vet — A veterinarian's public profile: PRC license, working days (0 = Sunday … 6 = Saturday)
- * and shift hours. The shift decides which 10-minute slots can be booked. Each profile belongs
- * to the vet's login account (userId); name, email and phone follow that account.
+ * Vet — A veterinarian with a PRC license, working days (0 = Sunday … 6 = Saturday)
+ * and shift hours. The shift decides which 10-minute slots can be booked.
  */
 import mongoose from 'mongoose';
 import toJSONPlugin from './plugins/toJSON.js';
@@ -10,7 +9,6 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const vetSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true, sparse: true },
     name: { type: String, required: true, trim: true, maxlength: 60 }, // stored without "Dr."
     title: { type: String, default: 'DVM' },
     specialty: { type: String, required: true, trim: true, maxlength: 60 },

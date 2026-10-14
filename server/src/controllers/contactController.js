@@ -20,7 +20,7 @@ export async function sendContactMessage(req, res) {
   res.status(201).json({ received: true, name: message.name });
 }
 
-/** GET /api/contact (vet) — newest messages first. */
+/** GET /api/contact (admin) — newest messages first. */
 export async function getContactMessages(req, res) {
   res.json(await ContactMessage.find().sort({ createdAt: -1 }).limit(200));
 }

@@ -1,20 +1,18 @@
 /**
  * seedData.js — Demo data for the PawCruz database: 8 veterinary services, 2 vets
- * (Dr. Neil Norman A. Cruz 11 AM–7 PM and Dr. Redmond Lopez 9 AM–5 PM, daily) with their
- * own veterinarian logins, pet-owner accounts, their pets and 40 appointments.
+ * (Dr. Neil Norman A. Cruz 11 AM–7 PM and Dr. Redmond Lopez 9 AM–5 PM, daily),
+ * a login for each vet, pet-owner accounts, their pets and 30 appointments (some Pending
+ * for the admin to accept; every Completed one carries the vet's medical record).
  * Appointment dates are generated relative to today (Asia/Manila), placed on free
  * 10-minute slots inside each vet's shift, and numbered like final-vet's queue
- * (online "E-001", walk-in "#901"). Today's visits are placed around the time the seed runs
- * and get live-queue states (completed, with the vet, waiting, not arrived yet), so the
- * home page queue board is never empty during clinic hours.
- * Ids here are short labels ("v1", "pt01"); seed.js swaps them for real MongoDB ObjectIds
- * and hashes the passwords.
+ * (online "E-001", walk-in "#901"). Ids here are short labels ("v1", "pt01");
+ * seed.js swaps them for real MongoDB ObjectIds and hashes the passwords.
  */
 import { ACTIVE_STATUSES, APPOINTMENT_STATUS } from '../shared/constants.js';
-import { addDaysToKey, getManilaNowMinutes, getManilaToday, toManilaDateTime } from '../shared/dateUtils.js';
+import { addDaysToKey, getManilaToday, toManilaDateTime } from '../shared/dateUtils.js';
 import { addMinutesToTime, getVetWindow, minutesToTime, rangesOverlap, SLOT_MINUTES, timeToMinutes } from '../shared/schedule.js';
 
-const { CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { PENDING, CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
 
 export const services = [
   {
@@ -102,7 +100,6 @@ export const services = [
 export const vets = [
   {
     id: 'v1',
-    userId: 'u_vet1',
     name: 'Neil Norman A. Cruz',
     title: 'DVM',
     specialty: 'General Practice & Surgery',
@@ -122,7 +119,6 @@ export const vets = [
   },
   {
     id: 'v2',
-    userId: 'u_vet2',
     name: 'Redmond Lopez',
     title: 'DVM',
     specialty: 'General Practice & Internal Medicine',
@@ -145,10 +141,11 @@ export const vets = [
 // Plain-text demo passwords: seed.js hashes them with bcrypt before saving.
 const userSeeds = [
   { id: 'u_owner', role: 'owner', firstName: 'Juan', lastName: 'Dela Cruz', email: 'owner@pawcruz.ph', password: 'Owner123!', phone: '09171234567', address: 'Unit 5C Mabuhay Residences, Malate, Manila', joinedDaysAgo: 120 },
-  // The vets' own logins (each linked to their vet profile above by userId).
-  { id: 'u_vet1', role: 'vet', firstName: 'Neil Norman A.', lastName: 'Cruz', email: 'neil.cruz@pawcruz.ph', password: 'Vet12345!', phone: '09171110001', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 420 },
-  { id: 'u_vet2', role: 'vet', firstName: 'Redmond', lastName: 'Lopez', email: 'redmond.lopez@pawcruz.ph', password: 'Vet12345!', phone: '09171110002', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 410 },
-  // Extra pet owners so the vet portal's lists, search and pagination have realistic data.
+  { id: 'u_admin', role: 'admin', firstName: 'Liza', lastName: 'Manalo', email: 'admin@pawcruz.ph', password: 'Admin123!', phone: '09181234567', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 400 },
+  // Veterinarian logins, linked to their Vet profiles (same email and phone).
+  { id: 'u_vet1', role: 'vet', vetId: 'v1', firstName: 'Neil Norman A.', lastName: 'Cruz', email: 'neil.cruz@pawcruz.ph', password: 'Vet12345!', phone: '09171110001', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 380 },
+  { id: 'u_vet2', role: 'vet', vetId: 'v2', firstName: 'Redmond', lastName: 'Lopez', email: 'redmond.lopez@pawcruz.ph', password: 'Vet12345!', phone: '09171110002', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 380 },
+  // Extra pet owners so the admin lists, search and pagination have realistic data.
   { id: 'u_o01', firstName: 'Paolo', lastName: 'Garcia', email: 'paolo.garcia@example.com', phone: '09175550101', address: 'Malibay, Pasay City', joinedDaysAgo: 210 },
   { id: 'u_o02', firstName: 'Kristine Mae', lastName: 'Flores', email: 'kristine.flores@example.com', phone: '09175550102', address: 'Baclaran, Parañaque City', joinedDaysAgo: 185 },
   { id: 'u_o03', firstName: 'Mark Anthony', lastName: 'Castillo', email: 'mark.castillo@example.com', phone: '09175550103', address: 'San Isidro, Makati City', joinedDaysAgo: 160 },
@@ -181,76 +178,6 @@ const petSeeds = [
   { id: 'pt17', ownerId: 'u_o10', name: 'Pepper', species: 'Dog', breed: 'French Bulldog', sex: 'Male', birthDate: '2022-03-03', weight: 10.5, color: 'Brindle', notes: 'Snores — brachycephalic breed.' },
 ];
 
-/**
- * The seeded visits (40 appointments; one visit has two pets). `day` is an offset from
- * today: past offsets stay in the past and future ones in the future. Today's visits use
- * `at` (minutes from when the seed runs) instead of a fixed `time`, so the live queue fits
- * the moment of seeding (see assignQueueStates). `flex` lets the seed pick another on-duty
- * vet when the preferred one is off that day.
- */
-const visitPlan = [
-  // Juan Dela Cruz (owner@pawcruz.ph): Mochi, Kape, Bantay
-  { ref: 'PWC-8KD3M', pets: ['pt01'], service: 's1', vet: 'v2', day: -80, time: '10:00', status: COMPLETED, notes: 'First visit — general check-up please.' },
-  { ref: 'PWC-Q7Z2P', pets: ['pt02'], service: 's2', vet: 'v2', day: -52, time: '14:00', status: COMPLETED, notes: 'Anti-rabies booster.' },
-  { ref: 'PWC-5HJ8R', pets: ['pt03'], service: 's7', vet: 'v1', day: -40, time: '15:00', status: CANCELLED, cancelReason: 'Schedule conflict at work', cancelledBy: 'owner' },
-  { ref: 'PWC-M3T9W', pets: ['pt01'], service: 's5', vet: 'v1', day: -30, time: '13:00', status: COMPLETED, notes: 'Bad breath and tartar build-up.' },
-  { ref: 'PWC-C6V4N', pets: ['pt03'], service: 's4', vet: 'v2', day: -15, time: '10:00', status: CANCELLED, cancelReason: 'Vet on emergency leave — please rebook', cancelledBy: 'clinic' },
-  { ref: 'PWC-7RB2K', pets: ['pt02'], service: 's3', vet: 'v2', day: -9, time: '10:00', status: COMPLETED, source: 'Walk-In' },
-  { ref: 'PWC-24X7Q', pets: ['pt01'], service: 's1', vet: 'v1', day: 2, time: '14:00', status: CONFIRMED, notes: 'Follow-up after her dental cleaning.' },
-  { ref: 'PWC-X9P5D', pets: ['pt03'], service: 's4', vet: 'v2', day: 5, time: '10:30', status: CONFIRMED, notes: 'Itchy skin and hair loss on his back.' },
-  { ref: 'PWC-3LW8F', pets: ['pt02'], service: 's2', vet: 'v2', day: 8, time: '09:30', status: CANCELLED, cancelReason: 'Found a better time', cancelledBy: 'owner' },
-  { ref: 'PWC-K4N6S', pets: ['pt03'], service: 's6', vet: 'v1', day: 12, time: '14:00', status: CONFIRMED, notes: 'Neuter (kapon) — fasting from midnight.' },
-  { ref: 'PWC-H2Q9V', pets: ['pt02'], service: 's7', vet: 'v2', day: 20, time: '11:00', status: CONFIRMED, notes: 'Annual blood work.' },
-  { ref: 'PWC-9DM3T', pets: ['pt01'], service: 's2', vet: 'v2', day: 30, time: '11:00', status: CONFIRMED, notes: '5-in-1 booster.' },
-  // Today's live queue — Dr. Redmond's lane (v2)…
-  { ref: 'PWC-P5C7J', pets: ['pt04'], service: 's2', vet: 'v2', day: 0, at: -50, status: CONFIRMED },
-  { ref: 'PWC-D4K8T', pets: ['pt08'], service: 's1', vet: 'v2', day: 0, at: -30, status: CONFIRMED },
-  { ref: 'PWC-6YF2L', pets: ['pt05', 'pt06'], service: 's1', vet: 'v2', day: 0, at: -10, status: CONFIRMED, notes: 'Both cats sneezing since last week.' },
-  { ref: 'PWC-H7N3R', pets: ['pt13'], service: 's3', vet: 'v2', day: 0, at: 10, status: CONFIRMED },
-  { ref: 'PWC-Z5Q2M', pets: ['pt01'], service: 's1', vet: 'v2', day: 0, at: 20, status: CONFIRMED, notes: 'Mochi keeps scratching her ears.' },
-  { ref: 'PWC-A8W6E', pets: ['pt10'], service: 's4', vet: 'v2', day: 0, at: 40, status: CONFIRMED, source: 'Walk-In' },
-  { ref: 'PWC-U9C3K', pets: ['pt16'], service: 's2', vet: 'v2', day: 0, at: 100, status: CONFIRMED },
-  // …and Dr. Neil's lane (v1)
-  { ref: 'PWC-T8G4H', pets: ['pt07'], service: 's7', vet: 'v1', day: 0, at: -40, status: CONFIRMED, source: 'Walk-In' },
-  { ref: 'PWC-E2R7Y', pets: ['pt11'], service: 's1', vet: 'v1', day: 0, at: -20, status: CONFIRMED, late: true },
-  { ref: 'PWC-M6J9P', pets: ['pt15'], service: 's2', vet: 'v1', day: 0, at: 0, status: CONFIRMED },
-  { ref: 'PWC-Q3V5N', pets: ['pt17'], service: 's4', vet: 'v1', day: 0, at: 10, status: CONFIRMED },
-  { ref: 'PWC-K7S2D', pets: ['pt12'], service: 's8', vet: 'v1', day: 0, at: 30, status: CONFIRMED },
-  { ref: 'PWC-W4F8L', pets: ['pt14'], service: 's8', vet: 'v1', day: 0, at: 80, status: CONFIRMED },
-  // Other pet owners
-  { ref: 'PWC-2ZK9B', pets: ['pt09'], service: 's8', vet: 'v2', day: -2, time: '10:00', status: COMPLETED },
-  { ref: 'PWC-W7S3C', pets: ['pt10'], service: 's1', vet: 'v2', day: -1, time: '09:00', status: COMPLETED, source: 'Walk-In' },
-  { ref: 'PWC-4EJ6X', pets: ['pt11'], service: 's5', vet: 'v1', day: -1, time: '14:00', status: COMPLETED },
-  { ref: 'PWC-B9R2Y', pets: ['pt13'], service: 's3', vet: 'v2', day: 1, time: '09:00', status: CONFIRMED },
-  { ref: 'PWC-F3U8M', pets: ['pt14'], service: 's8', vet: 'v2', day: 1, time: '10:30', status: CONFIRMED, notes: 'Not eating much for two days.' },
-  { ref: 'PWC-N6A4Q', pets: ['pt16'], service: 's6', vet: 'v1', day: 1, time: '15:00', status: CONFIRMED },
-  { ref: 'PWC-J8V5E', pets: ['pt17'], service: 's4', vet: 'v2', day: 3, time: '10:00', status: CONFIRMED },
-  { ref: 'PWC-R2H7U', pets: ['pt04'], service: 's1', vet: 'v1', day: 3, time: '16:00', status: CONFIRMED },
-  { ref: 'PWC-V4W2G', pets: ['pt07'], service: 's3', vet: 'v2', day: -20, time: '11:00', status: COMPLETED },
-  { ref: 'PWC-S7X3Z', pets: ['pt08'], service: 's1', vet: 'v2', day: -35, time: '10:00', status: CANCELLED, cancelReason: 'Feeling better', cancelledBy: 'owner' },
-  { ref: 'PWC-G9B6P', pets: ['pt10'], service: 's7', vet: 'v2', day: -60, time: '09:30', status: COMPLETED },
-  { ref: 'PWC-L3E8K', pets: ['pt11'], service: 's2', vet: 'v2', day: 10, time: '14:00', status: CONFIRMED },
-  { ref: 'PWC-Y6T5R', pets: ['pt12'], service: 's8', vet: 'v2', day: 14, time: '09:00', status: CONFIRMED },
-  { ref: 'PWC-U2M4W', pets: ['pt15'], service: 's6', vet: 'v1', day: 25, time: '15:00', status: CONFIRMED },
-];
-
-const MINUTE = 60 * 1000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
-const iso = (ms) => new Date(ms).toISOString();
-
-/** A visit planned `at` minutes from now (counted from the current 10-minute slot), as "HH:mm". */
-function relativeTime(at, nowMinutes) {
-  const start = Math.floor(nowMinutes / SLOT_MINUTES) * SLOT_MINUTES + at;
-  return minutesToTime(Math.min(Math.max(start, 0), 24 * 60 - SLOT_MINUTES));
-}
-
-/** Queue times of a finished visit: checked in 12 minutes early, seen on time, done when the slot ends. */
-function finishedTimes(date, startTime, endTime) {
-  const start = toManilaDateTime(date, startTime).getTime();
-  return { checkedInAt: iso(start - 12 * MINUTE), servedAt: iso(start), completedAt: toManilaDateTime(date, endTime).toISOString() };
-}
-
 /** The vet's findings for each kind of visit, used for the seeded Completed appointments. */
 const RECORD_BY_SERVICE = {
   s1: { diagnosis: 'Healthy, no abnormal findings on physical exam.', treatment: 'Full physical exam: heart, lungs, eyes, ears, teeth, skin and joints checked.', prescription: '', remarks: 'Keep the current diet and exercise. Next wellness check in 6 months.' },
@@ -266,20 +193,47 @@ const RECORD_BY_SERVICE = {
 /** Normal body temperature (°C) by species, for the seeded records. */
 const TEMPERATURE_BY_SPECIES = { Dog: 38.6, Cat: 38.7, Rabbit: 39.1, Hamster: 37.4, Cockatiel: 41.2 };
 
-/** Every Completed visit carries the vet's medical record, as the app requires. */
-function addMedicalRecords(appointments) {
-  appointments.forEach((a) => {
-    if (a.status !== COMPLETED) return;
-    const pet = petSeeds.find((p) => p.id === a.petId);
-    a.medicalRecord = {
-      weight: pet.weight,
-      temperature: TEMPERATURE_BY_SPECIES[pet.species] ?? 38.5,
-      followUpDate: '',
-      ...(RECORD_BY_SERVICE[a.serviceId] ?? RECORD_BY_SERVICE.s1),
-      recordedAt: a.completedAt,
-    };
-  });
-}
+/**
+ * The seeded visits (30 appointments; one visit has two pets). `day` is an offset from
+ * today: past offsets stay in the past and future ones in the future. `flex` lets the
+ * seed pick another on-duty vet when the preferred one is off today.
+ */
+const visitPlan = [
+  // Juan Dela Cruz (owner@pawcruz.ph): Mochi, Kape, Bantay
+  { ref: 'PWC-8KD3M', pets: ['pt01'], service: 's1', vet: 'v2', day: -80, time: '10:00', status: COMPLETED, notes: 'First visit — general check-up please.' },
+  { ref: 'PWC-Q7Z2P', pets: ['pt02'], service: 's2', vet: 'v2', day: -52, time: '14:00', status: COMPLETED, notes: 'Anti-rabies booster.' },
+  { ref: 'PWC-5HJ8R', pets: ['pt03'], service: 's7', vet: 'v1', day: -40, time: '15:00', status: CANCELLED, cancelReason: 'Schedule conflict at work', cancelledBy: 'owner' },
+  { ref: 'PWC-M3T9W', pets: ['pt01'], service: 's5', vet: 'v1', day: -30, time: '13:00', status: COMPLETED, notes: 'Bad breath and tartar build-up.' },
+  { ref: 'PWC-C6V4N', pets: ['pt03'], service: 's4', vet: 'v2', day: -15, time: '10:00', status: CANCELLED, cancelReason: 'Vet on emergency leave — please rebook', cancelledBy: 'clinic' },
+  { ref: 'PWC-7RB2K', pets: ['pt02'], service: 's3', vet: 'v2', day: -9, time: '10:00', status: COMPLETED, source: 'Walk-In' },
+  { ref: 'PWC-24X7Q', pets: ['pt01'], service: 's1', vet: 'v1', day: 2, time: '14:00', status: CONFIRMED, notes: 'Follow-up after her dental cleaning.' },
+  { ref: 'PWC-X9P5D', pets: ['pt03'], service: 's4', vet: 'v2', day: 5, time: '10:30', status: CONFIRMED, notes: 'Itchy skin and hair loss on his back.' },
+  { ref: 'PWC-3LW8F', pets: ['pt02'], service: 's2', vet: 'v2', day: 8, time: '09:30', status: CANCELLED, cancelReason: 'Found a better time', cancelledBy: 'owner' },
+  { ref: 'PWC-K4N6S', pets: ['pt03'], service: 's6', vet: 'v1', day: 12, time: '14:00', status: CONFIRMED, notes: 'Neuter (kapon) — fasting from midnight.' },
+  { ref: 'PWC-H2Q9V', pets: ['pt02'], service: 's7', vet: 'v2', day: 20, time: '11:00', status: PENDING, notes: 'Annual blood work.' },
+  { ref: 'PWC-9DM3T', pets: ['pt01'], service: 's2', vet: 'v2', day: 30, time: '11:00', status: PENDING, notes: '5-in-1 booster.' },
+  // Other pet owners
+  { ref: 'PWC-P5C7J', pets: ['pt04'], service: 's2', vet: 'v2', day: 0, time: '10:00', status: CONFIRMED, flex: true },
+  { ref: 'PWC-6YF2L', pets: ['pt05', 'pt06'], service: 's1', vet: 'v2', day: 0, time: '11:00', status: CONFIRMED, flex: true, notes: 'Both cats sneezing since last week.' },
+  { ref: 'PWC-T8G4H', pets: ['pt07'], service: 's7', vet: 'v1', day: 0, time: '15:00', status: CONFIRMED, flex: true, source: 'Walk-In' },
+  { ref: 'PWC-2ZK9B', pets: ['pt09'], service: 's8', vet: 'v2', day: -2, time: '10:00', status: COMPLETED },
+  { ref: 'PWC-W7S3C', pets: ['pt10'], service: 's1', vet: 'v2', day: -1, time: '09:00', status: COMPLETED, source: 'Walk-In' },
+  { ref: 'PWC-4EJ6X', pets: ['pt11'], service: 's5', vet: 'v1', day: -1, time: '14:00', status: COMPLETED },
+  { ref: 'PWC-B9R2Y', pets: ['pt13'], service: 's3', vet: 'v2', day: 1, time: '09:00', status: CONFIRMED },
+  { ref: 'PWC-F3U8M', pets: ['pt14'], service: 's8', vet: 'v2', day: 1, time: '10:30', status: CONFIRMED, notes: 'Not eating much for two days.' },
+  { ref: 'PWC-N6A4Q', pets: ['pt16'], service: 's6', vet: 'v1', day: 1, time: '15:00', status: CONFIRMED },
+  { ref: 'PWC-J8V5E', pets: ['pt17'], service: 's4', vet: 'v2', day: 3, time: '10:00', status: CONFIRMED },
+  { ref: 'PWC-R2H7U', pets: ['pt04'], service: 's1', vet: 'v1', day: 3, time: '16:00', status: PENDING },
+  { ref: 'PWC-V4W2G', pets: ['pt07'], service: 's3', vet: 'v2', day: -20, time: '11:00', status: COMPLETED },
+  { ref: 'PWC-S7X3Z', pets: ['pt08'], service: 's1', vet: 'v2', day: -35, time: '10:00', status: CANCELLED, cancelReason: 'Feeling better', cancelledBy: 'owner' },
+  { ref: 'PWC-G9B6P', pets: ['pt10'], service: 's7', vet: 'v2', day: -60, time: '09:30', status: COMPLETED },
+  { ref: 'PWC-L3E8K', pets: ['pt11'], service: 's2', vet: 'v2', day: 10, time: '14:00', status: PENDING },
+  { ref: 'PWC-Y6T5R', pets: ['pt12'], service: 's8', vet: 'v2', day: 14, time: '09:00', status: PENDING },
+  { ref: 'PWC-U2M4W', pets: ['pt15'], service: 's6', vet: 'v1', day: 25, time: '15:00', status: CONFIRMED },
+];
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 
 /** Finds a start time in the vet's shift where every pet gets a free back-to-back slot. */
 function findFreeTime({ date, vet, petIds, preferredTime, placed }) {
@@ -296,15 +250,14 @@ function findFreeTime({ date, vet, petIds, preferredTime, placed }) {
 }
 
 /** Places one planned visit on the nearest valid day (and vet, when flexible). */
-function placeVisit(item, placed, today, nowMinutes) {
+function placeVisit(item, placed, today) {
   const step = item.day < 0 ? -1 : 1;
   const pool = item.flex ? [item.vet, ...vets.map((v) => v.id).filter((id) => id !== item.vet)] : [item.vet];
-  const preferredTime = item.at === undefined ? item.time : relativeTime(item.at, nowMinutes);
   for (let offset = item.day, tries = 0; tries < 30; offset += step, tries += 1) {
     const date = addDaysToKey(today, offset);
     for (const vetId of pool) {
       const vet = vets.find((v) => v.id === vetId);
-      const startTime = findFreeTime({ date, vet, petIds: item.pets, preferredTime, placed });
+      const startTime = findFreeTime({ date, vet, petIds: item.pets, preferredTime: item.time, placed });
       if (startTime) return { date, vetId, startTime };
     }
   }
@@ -331,57 +284,10 @@ function assignQueueNumbers(appointments) {
   });
 }
 
-/**
- * Gives today's confirmed visits live-queue states for the moment the seed runs, lane by lane:
- * visits whose slots are over were completed, the visit in progress is with the vet, pets due
- * within the next 45 minutes have checked in and are waiting, and later ones haven't arrived.
- * A visit marked `late` whose slot passed during the vet's shift has only just checked in
- * (a final-vet "Late Arrival").
- */
-function assignQueueStates(appointments, today, lateVisitIds) {
-  const now = Date.now();
-  const nowMinutes = getManilaNowMinutes();
-  const visits = new Map();
-  appointments
-    .filter((a) => a.date === today && a.status === CONFIRMED)
-    .forEach((a) => visits.set(a.visitId, [...(visits.get(a.visitId) ?? []), a]));
-
-  vets.forEach((vet) => {
-    const window = getVetWindow(vet, today);
-    const onShift = Boolean(window) && nowMinutes >= window.start && nowMinutes < window.end;
-    const lane = [...visits.values()].filter((rows) => rows[0].vetId === vet.id).sort((a, b) => a[0].startTime.localeCompare(b[0].startTime));
-    let servingTaken = false;
-    lane.forEach((rows) => {
-      const start = timeToMinutes(rows[0].startTime);
-      const end = timeToMinutes(rows.at(-1).endTime);
-      const startMs = toManilaDateTime(today, rows[0].startTime).getTime();
-      let changes;
-      if (lateVisitIds.has(rows[0].visitId) && onShift && start <= nowMinutes - 16) {
-        changes = { checkedInAt: iso(now - 2 * MINUTE) };
-      } else if (end <= nowMinutes) {
-        rows.forEach((a) => Object.assign(a, { status: COMPLETED, ...finishedTimes(today, a.startTime, a.endTime) }, { updatedAt: toManilaDateTime(today, a.endTime).toISOString() }));
-        return;
-      } else if (!servingTaken && onShift && start <= nowMinutes + 5) {
-        servingTaken = true;
-        const served = Math.min(now, startMs);
-        changes = { checkedInAt: iso(served - 15 * MINUTE), servedAt: iso(served) };
-      } else if (start <= nowMinutes + 45) {
-        changes = { checkedInAt: iso(Math.min(now - 3 * MINUTE, startMs - 20 * MINUTE)) };
-      } else {
-        return; // not here yet
-      }
-      rows.forEach((a) => Object.assign(a, changes, { updatedAt: changes.servedAt ?? changes.checkedInAt }));
-    });
-  });
-}
-
 function buildAppointments(today) {
-  const nowMinutes = getManilaNowMinutes();
   const placed = [];
-  const lateVisitIds = new Set();
   visitPlan.forEach((item, index) => {
-    const { date, vetId, startTime } = placeVisit(item, placed, today, nowMinutes);
-    if (item.late) lateVisitIds.add(`visit_${String(index + 1).padStart(3, '0')}`);
+    const { date, vetId, startTime } = placeVisit(item, placed, today);
     const service = services.find((s) => s.id === item.service);
     const now = Date.now();
     const created = Math.min(toManilaDateTime(addDaysToKey(date, -(4 + (index % 6))), '10:15').getTime(), now - (index + 1) * HOUR);
@@ -389,11 +295,23 @@ function buildAppointments(today) {
       const pet = petSeeds.find((p) => p.id === petId);
       const petStart = addMinutesToTime(startTime, petIndex * SLOT_MINUTES);
       const petEnd = addMinutesToTime(petStart, SLOT_MINUTES);
+      const completedAt = toManilaDateTime(date, petEnd).getTime();
       const updatedByStatus = {
-        [COMPLETED]: toManilaDateTime(date, petEnd).getTime(),
+        [COMPLETED]: completedAt,
         [CANCELLED]: created + DAY,
         [CONFIRMED]: created,
+        [PENDING]: created,
       };
+      const medicalRecord =
+        item.status === COMPLETED
+          ? {
+              weight: pet.weight,
+              temperature: TEMPERATURE_BY_SPECIES[pet.species] ?? 38.5,
+              followUpDate: '',
+              ...RECORD_BY_SERVICE[item.service],
+              recordedAt: new Date(Math.min(completedAt, now)).toISOString(),
+            }
+          : null;
       placed.push({
         id: `apt_${String(placed.length + 1).padStart(3, '0')}`,
         reference: item.ref,
@@ -411,15 +329,13 @@ function buildAppointments(today) {
         price: service.price,
         cancelReason: item.cancelReason ?? '',
         cancelledBy: item.cancelledBy ?? '',
-        ...(item.status === COMPLETED ? finishedTimes(date, petStart, petEnd) : {}),
+        medicalRecord,
         createdAt: new Date(created).toISOString(),
         updatedAt: new Date(Math.min(updatedByStatus[item.status], now)).toISOString(),
       });
     });
   });
   assignQueueNumbers(placed);
-  assignQueueStates(placed, today, lateVisitIds);
-  addMedicalRecords(placed);
   return placed;
 }
 

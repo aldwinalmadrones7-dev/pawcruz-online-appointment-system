@@ -39,7 +39,7 @@ export default function Login() {
   });
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Pet owners book visits and manage their pets; veterinarians run the live queue.">
+    <AuthLayout title="Welcome back" subtitle="Log in to book visits and manage your pets.">
       {from && (
         <Alert variant="soft" className="d-flex gap-2 align-items-center">
           <FiInfo aria-hidden="true" /> Please log in to continue.

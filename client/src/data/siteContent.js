@@ -19,7 +19,7 @@ export const HOW_IT_WORKS = [
   {
     icon: FiSmile,
     title: 'Meet your vet',
-    text: 'Pick a veterinarian who is free at that time. You get a queue number and booking reference instantly.',
+    text: 'Pick a veterinarian who is free at that time. You get a queue number and booking reference instantly, and the clinic confirms your visit.',
   },
 ];
 
@@ -47,7 +47,7 @@ export const TESTIMONIALS = [
 export const FAQS = [
   {
     question: 'How do I book a vet appointment?',
-    answer: 'Create a free pet-owner account and add your pets. Then choose the pets, a date, an available time and a veterinarian. You get a booking reference (like PWC-24X7Q) and a queue number right away.',
+    answer: 'Create a free pet-owner account and add your pets. Then choose the pets, a date, an available time and a veterinarian. You get a booking reference (like PWC-24X7Q) and a queue number right away, and the clinic confirms the visit shortly after.',
   },
   {
     question: 'Can I book for more than one pet?',
@@ -62,13 +62,8 @@ export const FAQS = [
     answer: 'We are open Monday to Sunday, 9:00 AM to 7:00 PM. Appointments run in 10-minute intervals, and the last slot starts at 6:50 PM.',
   },
   {
-    question: 'How does the live queue work?',
-    answer:
-      'When you arrive, check in at the front desk with your queue number and you join your vet’s waiting line. Each vet sees one patient at a time, in the order of booked times. If you arrive more than 15 minutes late, you queue from the time you check in. The Live Queue page (in the menu) shows who is with each vet, who is next and the estimated wait. It only shows queue numbers and pet names.',
-  },
-  {
     question: 'Do you accept walk-ins?',
-    answer: 'Yes. Walk-ins get a queue number at the front desk and join the live queue right away, but booking online guarantees your slot and keeps your wait short.',
+    answer: 'Yes. Walk-ins get a queue number at the front desk, but booking online guarantees your slot and keeps your wait short.',
   },
   {
     question: 'What if my pet has an emergency?',

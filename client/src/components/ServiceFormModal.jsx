@@ -1,5 +1,5 @@
 /**
- * ServiceFormModal — Veterinarian form to add or edit a clinic service: name, category,
+ * ServiceFormModal — Admin form to add or edit a dental service: name, category,
  * peso price, duration, description, image path (with preview) and "featured" flag.
  */
 import { Button, Col, Form, InputGroup, Modal, Row, Spinner } from 'react-bootstrap';
