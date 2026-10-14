@@ -185,11 +185,6 @@
   color: var(--text-muted);
 }
 
-.float-top {
-  top: 8%;
-  left: -4%;
-}
-
 .float-bottom {
   right: -2%;
   bottom: 6%;
@@ -203,11 +198,6 @@
   height: 38px;
   border-radius: 12px;
   font-size: 1.1rem;
-}
-
-.float-icon.is-brand {
-  background: var(--brand-soft);
-  color: var(--brand-ink);
 }
 
 .float-icon.is-accent {
@@ -234,10 +224,6 @@
 }
 
 @media (max-width: 575.98px) {
-  .float-top {
-    left: 0;
-  }
-
   .float-bottom {
     right: 0;
   }
