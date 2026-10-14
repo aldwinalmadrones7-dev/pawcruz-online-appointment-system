@@ -11,6 +11,7 @@ import useAvailability from '../hooks/useAvailability';
 import { rescheduleAppointment } from '../services/appointmentService';
 import { getVets } from '../services/vetService';
 import { getLastBookableDate } from '../utils/appointmentRules';
+import { APPOINTMENT_STATUS } from '../utils/constants';
 import { formatDateLong, formatDateShort, formatTime, formatVetName } from '../utils/formatters';
 import { isVetOnDuty } from '../utils/schedule';
 import CalendarPicker from './CalendarPicker';
@@ -51,7 +52,8 @@ export default function RebookModal({ appointment, show, onHide, onRebooked }) {
     setSaving(true);
     try {
       const updated = await rescheduleAppointment(appointment.id, { date, startTime: time, vetId });
-      toast.success(`${updated.pet.name} is rebooked for ${formatDateShort(date)} at ${formatTime(time)} (queue ${updated.queueNumber}).`);
+      const awaiting = updated.status === APPOINTMENT_STATUS.PENDING ? ' The clinic will confirm the new time.' : '';
+      toast.success(`${updated.pet.name} is rebooked for ${formatDateShort(date)} at ${formatTime(time)} (queue ${updated.queueNumber}).${awaiting}`);
       onRebooked(updated);
       onHide();
     } catch (err) {

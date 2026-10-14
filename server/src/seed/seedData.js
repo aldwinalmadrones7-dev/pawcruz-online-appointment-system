@@ -1,7 +1,8 @@
 /**
  * seedData.js — Demo data for the PawCruz database: 8 veterinary services, 2 vets
  * (Dr. Neil Norman A. Cruz 11 AM–7 PM and Dr. Redmond Lopez 9 AM–5 PM, daily),
- * pet-owner accounts, their pets and 30 appointments.
+ * a login for each vet, pet-owner accounts, their pets and 30 appointments (some Pending
+ * for the admin to accept; every Completed one carries the vet's medical record).
  * Appointment dates are generated relative to today (Asia/Manila), placed on free
  * 10-minute slots inside each vet's shift, and numbered like final-vet's queue
  * (online "E-001", walk-in "#901"). Ids here are short labels ("v1", "pt01");
@@ -11,7 +12,7 @@ import { ACTIVE_STATUSES, APPOINTMENT_STATUS } from '../shared/constants.js';
 import { addDaysToKey, getManilaToday, toManilaDateTime } from '../shared/dateUtils.js';
 import { addMinutesToTime, getVetWindow, minutesToTime, rangesOverlap, SLOT_MINUTES, timeToMinutes } from '../shared/schedule.js';
 
-const { CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { PENDING, CONFIRMED, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
 
 export const services = [
   {
@@ -141,6 +142,9 @@ export const vets = [
 const userSeeds = [
   { id: 'u_owner', role: 'owner', firstName: 'Juan', lastName: 'Dela Cruz', email: 'owner@pawcruz.ph', password: 'Owner123!', phone: '09171234567', address: 'Unit 5C Mabuhay Residences, Malate, Manila', joinedDaysAgo: 120 },
   { id: 'u_admin', role: 'admin', firstName: 'Liza', lastName: 'Manalo', email: 'admin@pawcruz.ph', password: 'Admin123!', phone: '09181234567', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 400 },
+  // Veterinarian logins, linked to their Vet profiles (same email and phone).
+  { id: 'u_vet1', role: 'vet', vetId: 'v1', firstName: 'Neil Norman A.', lastName: 'Cruz', email: 'neil.cruz@pawcruz.ph', password: 'Vet12345!', phone: '09171110001', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 380 },
+  { id: 'u_vet2', role: 'vet', vetId: 'v2', firstName: 'Redmond', lastName: 'Lopez', email: 'redmond.lopez@pawcruz.ph', password: 'Vet12345!', phone: '09171110002', address: 'PawCruz Veterinary Clinic, Pasay City', joinedDaysAgo: 380 },
   // Extra pet owners so the admin lists, search and pagination have realistic data.
   { id: 'u_o01', firstName: 'Paolo', lastName: 'Garcia', email: 'paolo.garcia@example.com', phone: '09175550101', address: 'Malibay, Pasay City', joinedDaysAgo: 210 },
   { id: 'u_o02', firstName: 'Kristine Mae', lastName: 'Flores', email: 'kristine.flores@example.com', phone: '09175550102', address: 'Baclaran, Parañaque City', joinedDaysAgo: 185 },
@@ -174,6 +178,21 @@ const petSeeds = [
   { id: 'pt17', ownerId: 'u_o10', name: 'Pepper', species: 'Dog', breed: 'French Bulldog', sex: 'Male', birthDate: '2022-03-03', weight: 10.5, color: 'Brindle', notes: 'Snores — brachycephalic breed.' },
 ];
 
+/** The vet's findings for each kind of visit, used for the seeded Completed appointments. */
+const RECORD_BY_SERVICE = {
+  s1: { diagnosis: 'Healthy, no abnormal findings on physical exam.', treatment: 'Full physical exam: heart, lungs, eyes, ears, teeth, skin and joints checked.', prescription: '', remarks: 'Keep the current diet and exercise. Next wellness check in 6 months.' },
+  s2: { diagnosis: 'Healthy and due for a vaccine booster.', treatment: 'Vaccine given under the skin (right shoulder). Watched for 15 minutes with no reaction.', prescription: '', remarks: 'Mild soreness or sleepiness for 24 hours is normal. Vaccine card updated.' },
+  s3: { diagnosis: 'Routine parasite prevention; a little flea dirt seen on the coat.', treatment: 'Oral dewormer given; topical tick and flea treatment applied.', prescription: 'Repeat the dewormer in 3 months.', remarks: 'Wash bedding in hot water this week.' },
+  s4: { diagnosis: 'Allergic dermatitis (suspected food allergy).', treatment: 'Skin scraping negative for mites. Medicated bath given.', prescription: 'Antihistamine once daily for 10 days; hypoallergenic diet.', remarks: 'Avoid chicken-based treats.' },
+  s5: { diagnosis: 'Grade 2 tartar with mild gingivitis.', treatment: 'Scaling and polishing under sedation; no extractions needed.', prescription: 'Chlorhexidine oral gel once daily for 7 days.', remarks: 'Soft food for 2 days, then brush teeth 3 times a week.' },
+  s6: { diagnosis: 'Healthy; routine neuter.', treatment: 'Neutered under general anesthesia with no complications.', prescription: 'Pain reliever twice daily for 3 days.', remarks: 'Keep the e-collar on for 10 days and the wound dry.' },
+  s7: { diagnosis: 'Blood work (CBC and chemistry) within normal limits.', treatment: 'Blood drawn for CBC and blood chemistry.', prescription: '', remarks: 'No changes needed. Repeat yearly.' },
+  s8: { diagnosis: 'Slightly overgrown front teeth; otherwise healthy.', treatment: 'Teeth trimmed and diet reviewed.', prescription: 'Unlimited timothy hay; limit pellets to 1/4 cup a day.', remarks: 'Recheck the teeth in 2 months.' },
+};
+
+/** Normal body temperature (°C) by species, for the seeded records. */
+const TEMPERATURE_BY_SPECIES = { Dog: 38.6, Cat: 38.7, Rabbit: 39.1, Hamster: 37.4, Cockatiel: 41.2 };
+
 /**
  * The seeded visits (30 appointments; one visit has two pets). `day` is an offset from
  * today: past offsets stay in the past and future ones in the future. `flex` lets the
@@ -191,8 +210,8 @@ const visitPlan = [
   { ref: 'PWC-X9P5D', pets: ['pt03'], service: 's4', vet: 'v2', day: 5, time: '10:30', status: CONFIRMED, notes: 'Itchy skin and hair loss on his back.' },
   { ref: 'PWC-3LW8F', pets: ['pt02'], service: 's2', vet: 'v2', day: 8, time: '09:30', status: CANCELLED, cancelReason: 'Found a better time', cancelledBy: 'owner' },
   { ref: 'PWC-K4N6S', pets: ['pt03'], service: 's6', vet: 'v1', day: 12, time: '14:00', status: CONFIRMED, notes: 'Neuter (kapon) — fasting from midnight.' },
-  { ref: 'PWC-H2Q9V', pets: ['pt02'], service: 's7', vet: 'v2', day: 20, time: '11:00', status: CONFIRMED, notes: 'Annual blood work.' },
-  { ref: 'PWC-9DM3T', pets: ['pt01'], service: 's2', vet: 'v2', day: 30, time: '11:00', status: CONFIRMED, notes: '5-in-1 booster.' },
+  { ref: 'PWC-H2Q9V', pets: ['pt02'], service: 's7', vet: 'v2', day: 20, time: '11:00', status: PENDING, notes: 'Annual blood work.' },
+  { ref: 'PWC-9DM3T', pets: ['pt01'], service: 's2', vet: 'v2', day: 30, time: '11:00', status: PENDING, notes: '5-in-1 booster.' },
   // Other pet owners
   { ref: 'PWC-P5C7J', pets: ['pt04'], service: 's2', vet: 'v2', day: 0, time: '10:00', status: CONFIRMED, flex: true },
   { ref: 'PWC-6YF2L', pets: ['pt05', 'pt06'], service: 's1', vet: 'v2', day: 0, time: '11:00', status: CONFIRMED, flex: true, notes: 'Both cats sneezing since last week.' },
@@ -204,12 +223,12 @@ const visitPlan = [
   { ref: 'PWC-F3U8M', pets: ['pt14'], service: 's8', vet: 'v2', day: 1, time: '10:30', status: CONFIRMED, notes: 'Not eating much for two days.' },
   { ref: 'PWC-N6A4Q', pets: ['pt16'], service: 's6', vet: 'v1', day: 1, time: '15:00', status: CONFIRMED },
   { ref: 'PWC-J8V5E', pets: ['pt17'], service: 's4', vet: 'v2', day: 3, time: '10:00', status: CONFIRMED },
-  { ref: 'PWC-R2H7U', pets: ['pt04'], service: 's1', vet: 'v1', day: 3, time: '16:00', status: CONFIRMED },
+  { ref: 'PWC-R2H7U', pets: ['pt04'], service: 's1', vet: 'v1', day: 3, time: '16:00', status: PENDING },
   { ref: 'PWC-V4W2G', pets: ['pt07'], service: 's3', vet: 'v2', day: -20, time: '11:00', status: COMPLETED },
   { ref: 'PWC-S7X3Z', pets: ['pt08'], service: 's1', vet: 'v2', day: -35, time: '10:00', status: CANCELLED, cancelReason: 'Feeling better', cancelledBy: 'owner' },
   { ref: 'PWC-G9B6P', pets: ['pt10'], service: 's7', vet: 'v2', day: -60, time: '09:30', status: COMPLETED },
-  { ref: 'PWC-L3E8K', pets: ['pt11'], service: 's2', vet: 'v2', day: 10, time: '14:00', status: CONFIRMED },
-  { ref: 'PWC-Y6T5R', pets: ['pt12'], service: 's8', vet: 'v2', day: 14, time: '09:00', status: CONFIRMED },
+  { ref: 'PWC-L3E8K', pets: ['pt11'], service: 's2', vet: 'v2', day: 10, time: '14:00', status: PENDING },
+  { ref: 'PWC-Y6T5R', pets: ['pt12'], service: 's8', vet: 'v2', day: 14, time: '09:00', status: PENDING },
   { ref: 'PWC-U2M4W', pets: ['pt15'], service: 's6', vet: 'v1', day: 25, time: '15:00', status: CONFIRMED },
 ];
 
@@ -276,11 +295,23 @@ function buildAppointments(today) {
       const pet = petSeeds.find((p) => p.id === petId);
       const petStart = addMinutesToTime(startTime, petIndex * SLOT_MINUTES);
       const petEnd = addMinutesToTime(petStart, SLOT_MINUTES);
+      const completedAt = toManilaDateTime(date, petEnd).getTime();
       const updatedByStatus = {
-        [COMPLETED]: toManilaDateTime(date, petEnd).getTime(),
+        [COMPLETED]: completedAt,
         [CANCELLED]: created + DAY,
         [CONFIRMED]: created,
+        [PENDING]: created,
       };
+      const medicalRecord =
+        item.status === COMPLETED
+          ? {
+              weight: pet.weight,
+              temperature: TEMPERATURE_BY_SPECIES[pet.species] ?? 38.5,
+              followUpDate: '',
+              ...RECORD_BY_SERVICE[item.service],
+              recordedAt: new Date(Math.min(completedAt, now)).toISOString(),
+            }
+          : null;
       placed.push({
         id: `apt_${String(placed.length + 1).padStart(3, '0')}`,
         reference: item.ref,
@@ -298,6 +329,7 @@ function buildAppointments(today) {
         price: service.price,
         cancelReason: item.cancelReason ?? '',
         cancelledBy: item.cancelledBy ?? '',
+        medicalRecord,
         createdAt: new Date(created).toISOString(),
         updatedAt: new Date(Math.min(updatedByStatus[item.status], now)).toISOString(),
       });

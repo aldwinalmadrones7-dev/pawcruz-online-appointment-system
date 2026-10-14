@@ -120,6 +120,8 @@ Open <http://localhost:5173> and log in with a test account:
 | --- | --- | --- |
 | Pet owner | `owner@pawcruz.ph` | `Owner123!` |
 | Admin | `admin@pawcruz.ph` | `Admin123!` |
+| Vet (Dr. Neil Cruz) | `neil.cruz@pawcruz.ph` | `Vet12345!` |
+| Vet (Dr. Redmond Lopez) | `redmond.lopez@pawcruz.ph` | `Vet12345!` |
 
 The React app calls `http://localhost:5000/api` by default. If your API runs somewhere else, create
 `client/.env` with `VITE_API_URL=https://your-api-address/api` and restart `npm run dev`.

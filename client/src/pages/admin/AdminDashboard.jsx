@@ -1,11 +1,12 @@
 /**
- * AdminDashboard — Clinic overview: KPI cards, appointments-per-day chart for this week,
- * status breakdown, today's schedule (with queue numbers) and the vets on duty today.
+ * AdminDashboard — Clinic overview: KPI cards (including bookings waiting to be accepted),
+ * appointments-per-day chart for this week, status breakdown, today's schedule (with queue
+ * numbers) and the vets on duty today.
  */
 import { useState } from 'react';
 import { Button, Col, Row } from 'react-bootstrap';
 import { FaUserMd } from 'react-icons/fa';
-import { FiCalendar, FiCheckCircle, FiClock, FiHeart, FiPlus, FiRefreshCw } from 'react-icons/fi';
+import { FiCalendar, FiCheckCircle, FiClock, FiInbox, FiPlus, FiRefreshCw } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -71,13 +72,15 @@ export default function AdminDashboard() {
               <StatCard icon={FiCalendar} label="Today's appointments" value={stats.today.length} hint={`${stats.walkInsToday} walk-in${stats.walkInsToday === 1 ? '' : 's'}`} tone="brand" />
             </Col>
             <Col sm={6} xl={3}>
-              <StatCard icon={FiClock} label="Upcoming confirmed" value={stats.upcomingConfirmed} hint="From now onward" tone="success" />
+              <Link to="/admin/appointments" className="stat-link" aria-label={`${stats.pendingRequests} bookings waiting to be accepted`}>
+                <StatCard icon={FiInbox} label="Waiting to accept" value={stats.pendingRequests} hint="Online bookings" tone="amber" />
+              </Link>
             </Col>
             <Col sm={6} xl={3}>
-              <StatCard icon={FiCheckCircle} label="Completed this month" value={stats.completedThisMonth} hint="Finished consultations" tone="amber" />
+              <StatCard icon={FiClock} label="Upcoming confirmed" value={stats.upcomingConfirmed} hint="Sent to the vets" tone="success" />
             </Col>
             <Col sm={6} xl={3}>
-              <StatCard icon={FiHeart} label="Registered pets" value={stats.registeredPets} hint="Animal patients" tone="accent" />
+              <StatCard icon={FiCheckCircle} label="Completed this month" value={stats.completedThisMonth} hint="With medical records" tone="accent" />
             </Col>
           </Row>
 

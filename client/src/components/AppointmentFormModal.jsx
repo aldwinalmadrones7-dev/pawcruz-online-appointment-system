@@ -3,6 +3,8 @@
  * New: register a walk-in (or phone) visit for one or more of an owner's pets —
  *      owner → pets → reason → date → open time → free vet.
  * Edit: change one appointment's reason, notes, source, status and (if upcoming) its schedule.
+ * Only the assigned vet can complete a visit (with its medical record), so "Completed" is
+ * never offered here, and a completed visit's status is locked.
  */
 import { Button, Col, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import { FiLock } from 'react-icons/fi';
@@ -14,7 +16,7 @@ import { createAppointment, updateAppointment } from '../services/appointmentSer
 import { getOwners } from '../services/patientService';
 import { getPets } from '../services/petService';
 import { getLastBookableDate, isActive } from '../utils/appointmentRules';
-import { APPOINTMENT_SOURCES, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../utils/constants';
+import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, MAX_PETS_PER_VISIT } from '../utils/constants';
 import { isDateTimePast } from '../utils/dateUtils';
 import { describePet, formatDateLong, formatTimeRange, getFullName } from '../utils/formatters';
 import { isVetOnDuty } from '../utils/schedule';
@@ -34,7 +36,7 @@ function buildInitialValues(appointment, services = []) {
     startTime: appointment?.startTime ?? '',
     vetId: appointment?.vetId ?? '',
     source: appointment?.source ?? 'Walk-In',
-    status: appointment?.status ?? 'Confirmed',
+    status: appointment?.status ?? APPOINTMENT_STATUS.CONFIRMED,
     notes: appointment?.notes ?? '',
   };
 }
@@ -42,6 +44,8 @@ function buildInitialValues(appointment, services = []) {
 export default function AppointmentFormModal({ show, appointment, services, vets, onHide, onSaved }) {
   const isEdit = Boolean(appointment);
   const scheduleLocked = isEdit && (!isActive(appointment) || isDateTimePast(appointment.date, appointment.startTime));
+  const isCompleted = appointment?.status === APPOINTMENT_STATUS.COMPLETED;
+  const statusOptions = isCompleted ? [APPOINTMENT_STATUS.COMPLETED] : APPOINTMENT_STATUSES.filter((status) => status !== APPOINTMENT_STATUS.COMPLETED);
   const validate = (values) => validateAppointmentForm(values, { isEdit, scheduleLocked });
   const form = useForm(buildInitialValues(appointment, services), validate);
   const { values, errors, setFieldValue, setValues } = form;
@@ -174,8 +178,8 @@ export default function AppointmentFormModal({ show, appointment, services, vets
                 {isEdit && (
                   <Col xs={6}>
                     <FormField label="Status" controlId="appt-status" required error={errors.status} className="mb-0">
-                      <Form.Select {...form.register('status')}>
-                        {APPOINTMENT_STATUSES.map((status) => (
+                      <Form.Select {...form.register('status')} disabled={isCompleted}>
+                        {statusOptions.map((status) => (
                           <option key={status}>{status}</option>
                         ))}
                       </Form.Select>

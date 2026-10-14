@@ -2,13 +2,29 @@
  * Appointment — One pet's 10-minute slot with one vet. A multi-pet visit is several
  * appointments that share a `visitId`, booking `reference` and `queueNumber`.
  * Two partial unique indexes stop double-booking inside the database itself: a vet (or a
- * pet) can never have two Confirmed appointments starting at the same date and time.
+ * pet) can never have two Pending/Confirmed appointments starting at the same date and time.
+ * When the vet completes the visit, the `medicalRecord` becomes part of the pet's history.
  */
 import mongoose from 'mongoose';
-import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, CONSULTATION_TYPE } from '../shared/constants.js';
+import { ACTIVE_STATUSES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES, CONSULTATION_TYPE } from '../shared/constants.js';
 import toJSONPlugin from './plugins/toJSON.js';
 
 const { ObjectId } = mongoose.Schema.Types;
+
+/** What the vet found and did — written once, when the visit is completed. */
+const medicalRecordSchema = new mongoose.Schema(
+  {
+    weight: { type: Number, default: null, min: 0, max: 150 }, // kg on the day of the visit
+    temperature: { type: Number, default: null, min: 30, max: 45 }, // °C
+    diagnosis: { type: String, required: true, trim: true, maxlength: 500 },
+    treatment: { type: String, required: true, trim: true, maxlength: 1000 },
+    prescription: { type: String, default: '', trim: true, maxlength: 500 },
+    followUpDate: { type: String, default: '' }, // "YYYY-MM-DD" or ''
+    remarks: { type: String, default: '', trim: true, maxlength: 500 },
+    recordedAt: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
 
 const appointmentSchema = new mongoose.Schema(
   {
@@ -23,18 +39,21 @@ const appointmentSchema = new mongoose.Schema(
     startTime: { type: String, required: true }, // "HH:mm"
     endTime: { type: String, required: true },
     source: { type: String, enum: APPOINTMENT_SOURCES, default: 'Online' },
-    status: { type: String, enum: APPOINTMENT_STATUSES, default: APPOINTMENT_STATUS.CONFIRMED },
+    status: { type: String, enum: APPOINTMENT_STATUSES, default: APPOINTMENT_STATUS.PENDING },
     notes: { type: String, default: '', trim: true, maxlength: 500 },
     price: { type: Number, default: 0 }, // the service's price at booking time
     cancelReason: { type: String, default: '', maxlength: 200 },
     cancelledBy: { type: String, enum: ['', 'owner', 'clinic'], default: '' },
+    medicalRecord: { type: medicalRecordSchema, default: null },
   },
   { timestamps: true },
 );
 
-const confirmedOnly = { unique: true, partialFilterExpression: { status: APPOINTMENT_STATUS.CONFIRMED } };
-appointmentSchema.index({ vetId: 1, date: 1, startTime: 1 }, { ...confirmedOnly, name: 'vet_slot_unique' });
-appointmentSchema.index({ petId: 1, date: 1, startTime: 1 }, { ...confirmedOnly, name: 'pet_slot_unique' });
+// Pending and Confirmed visits both hold their slot. (The old Confirmed-only indexes are
+// dropped by Appointment.syncIndexes() when the API starts.)
+const activeOnly = { unique: true, partialFilterExpression: { status: { $in: ACTIVE_STATUSES } } };
+appointmentSchema.index({ vetId: 1, date: 1, startTime: 1 }, { ...activeOnly, name: 'vet_slot_active' });
+appointmentSchema.index({ petId: 1, date: 1, startTime: 1 }, { ...activeOnly, name: 'pet_slot_active' });
 
 // Related records, loaded with .populate(APPOINTMENT_POPULATE) so the app can show appointment.pet.name etc.
 const related = (ref, localField) => ({ ref, localField, foreignField: '_id', justOne: true });

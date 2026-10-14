@@ -1,6 +1,7 @@
 /**
  * AppointmentDetail — One visit: queue number, status timeline, pet profile, vet,
  * schedule, reason and notes, with rebook, cancel, add-to-calendar and print actions.
+ * Once the vet completes the visit, its medical record is shown here too.
  */
 import { useState } from 'react';
 import { Button, Col, Row } from 'react-bootstrap';
@@ -13,6 +14,7 @@ import DetailList from '../../components/DetailList';
 import EmptyState from '../../components/EmptyState';
 import ImageWithFallback from '../../components/ImageWithFallback';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MedicalRecordView from '../../components/MedicalRecordView';
 import PetAvatar from '../../components/PetAvatar';
 import RebookModal from '../../components/RebookModal';
 import StatusBadge from '../../components/StatusBadge';
@@ -23,19 +25,23 @@ import { APPOINTMENT_STATUS, CLINIC_INFO, CONSULTATION_TYPE } from '../../utils/
 import { downloadAppointmentIcs } from '../../utils/calendarFile';
 import { describePet, formatCurrency, formatDateLong, formatRelativeDay, formatTimeRange, formatTimestamp, formatVetName } from '../../utils/formatters';
 
-const { COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { PENDING, COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
 
-/** Builds the status timeline for the current status (bookings are confirmed right away). */
+/** Builds the status timeline: booked → accepted by the clinic → visit day → completed by the vet. */
 function getTimeline(appointment) {
-  const booked = { label: 'Booked & confirmed', detail: formatTimestamp(appointment.createdAt), state: 'done' };
-  if (appointment.status === CANCELLED) {
+  const { status } = appointment;
+  const booked = { label: 'Booking sent', detail: formatTimestamp(appointment.createdAt), state: 'done' };
+  if (status === CANCELLED) {
     const by = appointment.cancelledBy === 'clinic' ? 'by the clinic' : 'by you';
     return [booked, { label: 'Cancelled', detail: `${by}${appointment.cancelReason ? ` · ${appointment.cancelReason}` : ''}`, state: 'cancelled' }];
   }
+  const accepted = status !== PENDING;
+  const completed = status === COMPLETED;
   return [
     booked,
-    { label: 'Visit day', detail: `${formatRelativeDay(appointment.date)} · queue ${appointment.queueNumber}`, state: appointment.status === COMPLETED ? 'done' : 'current' },
-    { label: 'Completed', detail: appointment.status === COMPLETED ? 'Thanks for visiting!' : 'After the consultation', state: appointment.status === COMPLETED ? 'done' : 'todo' },
+    { label: 'Accepted by the clinic', detail: accepted ? `Assigned to ${formatVetName(appointment.vet)}` : 'Waiting for the clinic to confirm', state: accepted ? 'done' : 'current' },
+    { label: 'Visit day', detail: `${formatRelativeDay(appointment.date)} · queue ${appointment.queueNumber}`, state: completed ? 'done' : accepted ? 'current' : 'todo' },
+    { label: 'Completed', detail: completed ? 'Medical record added by your vet' : 'After the consultation', state: completed ? 'done' : 'todo' },
   ];
 }
 
@@ -190,6 +196,18 @@ export default function AppointmentDetail() {
           </div>
         </Col>
       </Row>
+
+      {appointment.status === COMPLETED && (
+        <div className="pc-card mt-4">
+          <div className="pc-card-body">
+            <div className="card-title-row">
+              <h2>Medical record</h2>
+              <span className="text-muted-soft small">{formatVetName(vet)}</span>
+            </div>
+            <MedicalRecordView record={appointment.medicalRecord} />
+          </div>
+        </div>
+      )}
 
       <RebookModal appointment={appointment} show={modal === 'rebook'} onHide={() => setModal(null)} onRebooked={setData} />
       <ConfirmModal

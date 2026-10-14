@@ -1,6 +1,6 @@
 /**
  * routes/index.js — Every API route, mounted under /api by app.js.
- * protect = must be logged in (valid JWT); adminOnly = role "admin".
+ * protect = must be logged in (valid JWT); adminOnly / vetOnly / ownerOrAdmin = allowed roles.
  */
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -12,7 +12,8 @@ import * as patients from '../controllers/patientController.js';
 import * as pets from '../controllers/petController.js';
 import * as services from '../controllers/serviceController.js';
 import * as vets from '../controllers/vetController.js';
-import { adminOnly, protect } from '../middleware/auth.js';
+import { adminOnly, authorize, ownerOrAdmin, protect, vetOnly } from '../middleware/auth.js';
+import { ROLES } from '../shared/constants.js';
 
 const router = Router();
 
@@ -44,24 +45,27 @@ router.put('/auth/me', protect, auth.updateMe);
 router.put('/auth/password', protect, auth.changePassword);
 
 // ---- Pets --------------------------------------------------------------------------
-router.get('/pets/mine', protect, pets.getMyPets);
+router.get('/pets/mine', protect, ownerOrAdmin, pets.getMyPets);
 router.get('/pets', protect, adminOnly, pets.getPets);
-router.post('/pets', protect, pets.createPet);
-router.put('/pets/:id', protect, pets.updatePet);
-router.delete('/pets/:id', protect, pets.deletePet);
+router.get('/pets/:id/history', protect, appointments.getPetHistory); // completed visits + medical records
+router.post('/pets', protect, ownerOrAdmin, pets.createPet);
+router.put('/pets/:id', protect, ownerOrAdmin, pets.updatePet);
+router.delete('/pets/:id', protect, ownerOrAdmin, pets.deletePet);
 
 // ---- Appointments (fixed paths before /:id) -----------------------------------------
-router.get('/appointments/availability', protect, appointments.getAvailability);
-router.get('/appointments/mine', protect, appointments.getMyAppointments);
+router.get('/appointments/availability', protect, ownerOrAdmin, appointments.getAvailability);
+router.get('/appointments/mine', protect, ownerOrAdmin, appointments.getMyAppointments);
+router.get('/appointments/vet', protect, vetOnly, appointments.getVetAppointments);
 router.get('/appointments/stats', protect, adminOnly, appointments.getDashboardStats);
 router.get('/appointments/counts', protect, appointments.getAppointmentCounts);
 router.get('/appointments', protect, adminOnly, appointments.getAppointments);
-router.post('/appointments', protect, appointments.createAppointment);
+router.post('/appointments', protect, ownerOrAdmin, appointments.createAppointment);
 router.get('/appointments/:id', protect, appointments.getAppointmentById);
 router.put('/appointments/:id', protect, adminOnly, appointments.updateAppointment);
-router.patch('/appointments/:id/rebook', protect, appointments.rescheduleAppointment);
-router.patch('/appointments/:id/cancel', protect, appointments.cancelAppointment);
-router.patch('/appointments/:id/status', protect, adminOnly, appointments.updateAppointmentStatus);
+router.patch('/appointments/:id/rebook', protect, ownerOrAdmin, appointments.rescheduleAppointment);
+router.patch('/appointments/:id/cancel', protect, ownerOrAdmin, appointments.cancelAppointment);
+router.patch('/appointments/:id/status', protect, adminOnly, appointments.updateAppointmentStatus); // accept / cancel
+router.patch('/appointments/:id/complete', protect, vetOnly, appointments.completeAppointment); // medical record
 router.delete('/appointments/:id', protect, adminOnly, appointments.deleteAppointment);
 
 // ---- Veterinarians -------------------------------------------------------------------
@@ -79,7 +83,7 @@ router.put('/services/:id', protect, adminOnly, services.updateService);
 router.delete('/services/:id', protect, adminOnly, services.deleteService);
 
 // ---- Patients, owners, contact, demo -------------------------------------------------
-router.get('/patients', protect, adminOnly, patients.getPatients);
+router.get('/patients', protect, authorize(ROLES.ADMIN, ROLES.VET), patients.getPatients); // vets: their own patients
 router.get('/users', protect, adminOnly, patients.getOwners);
 router.post('/contact', contactLimiter, contact.sendContactMessage);
 router.get('/contact', protect, adminOnly, contact.getContactMessages);

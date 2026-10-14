@@ -1,5 +1,5 @@
 /**
- * App — All routes. Public pages use PublicLayout; /owner/* and /admin/* are
+ * App — All routes. Public pages use PublicLayout; /owner/*, /admin/* and /vet/* are
  * protected (login required) and role-checked, and their pages load on demand.
  */
 import { lazy, Suspense } from 'react';
@@ -35,6 +35,8 @@ const ManageAppointments = lazy(() => import('./pages/admin/ManageAppointments')
 const ManageVets = lazy(() => import('./pages/admin/ManageVets'));
 const ManageServices = lazy(() => import('./pages/admin/ManageServices'));
 const ManagePatients = lazy(() => import('./pages/admin/ManagePatients'));
+const VetDashboard = lazy(() => import('./pages/vet/VetDashboard'));
+const VetAppointments = lazy(() => import('./pages/vet/VetAppointments'));
 
 export default function App() {
   const { theme } = useTheme();
@@ -78,6 +80,15 @@ export default function App() {
                 <Route path="appointments" element={<ManageAppointments />} />
                 <Route path="vets" element={<ManageVets />} />
                 <Route path="services" element={<ManageServices />} />
+                <Route path="patients" element={<ManagePatients />} />
+              </Route>
+            </Route>
+
+            <Route element={<RoleRoute allowedRoles={[ROLES.VET]} />}>
+              <Route path="vet" element={<DashboardLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<VetDashboard />} />
+                <Route path="appointments" element={<VetAppointments />} />
                 <Route path="patients" element={<ManagePatients />} />
               </Route>
             </Route>

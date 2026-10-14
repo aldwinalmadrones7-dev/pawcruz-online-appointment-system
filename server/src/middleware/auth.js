@@ -37,5 +37,9 @@ export const authorize =
 
 export const adminOnly = authorize(ROLES.ADMIN);
 export const ownerOnly = authorize(ROLES.OWNER);
+export const vetOnly = authorize(ROLES.VET);
+/** Pet owners and the front desk: booking, rebooking, cancelling and pet records. */
+export const ownerOrAdmin = authorize(ROLES.OWNER, ROLES.ADMIN);
 
 export const isAdmin = (user) => user?.role === ROLES.ADMIN;
+export const isVet = (user) => user?.role === ROLES.VET;

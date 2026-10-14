@@ -1,6 +1,7 @@
 /**
  * VetFormModal — Admin form to add or edit a veterinarian: profile, PRC license,
- * days on duty, shift hours and a photo path with live preview.
+ * days on duty, shift hours, a photo path with live preview, and the vet's login password
+ * (they sign in with their email to see accepted visits and write medical records).
  */
 import { Button, Col, Form, Modal, Row, Spinner } from 'react-bootstrap';
 import { FaUserMd } from 'react-icons/fa';
@@ -13,6 +14,7 @@ import { CLINIC_HOURS, minutesToTime, timeToMinutes } from '../utils/schedule';
 import { sanitizePhoneInput, validateVet } from '../utils/validators';
 import FormField from './FormField';
 import ImageWithFallback from './ImageWithFallback';
+import PasswordInput from './PasswordInput';
 
 // Half-hour choices inside clinic hours (9:00 AM – 7:00 PM).
 const HOUR_OPTIONS = (() => {
@@ -35,6 +37,7 @@ function buildInitialValues(vet) {
     shiftStart: vet?.shiftStart ?? '09:00',
     shiftEnd: vet?.shiftEnd ?? '14:00',
     bio: vet?.bio ?? '',
+    password: '',
   };
 }
 
@@ -43,7 +46,7 @@ const toggleValue = (list, value) => (list.includes(value) ? list.filter((item) 
 
 export default function VetFormModal({ show, vet, onHide, onSaved }) {
   const isEdit = Boolean(vet);
-  const form = useForm(buildInitialValues(vet), validateVet);
+  const form = useForm(buildInitialValues(vet), (values) => validateVet(values, { isEdit }));
   const { values, errors, setFieldValue } = form;
 
   const onSubmit = form.handleSubmit(async (formValues) => {
@@ -97,7 +100,7 @@ export default function VetFormModal({ show, vet, onHide, onSaved }) {
               </div>
             </Col>
             <Col md={6}>
-              <FormField label="Email" type="email" required placeholder="name@pawcruz.ph" error={errors.email} {...form.register('email')} />
+              <FormField label="Email" type="email" required placeholder="name@pawcruz.ph" hint="Also the vet’s login." error={errors.email} {...form.register('email')} />
             </Col>
             <Col md={6}>
               <FormField
@@ -116,6 +119,17 @@ export default function VetFormModal({ show, vet, onHide, onSaved }) {
             </Col>
             <Col md={8}>
               <FormField label="Photo path" placeholder="/images/vet-9.jpg" hint="Put the photo in client/public/images and type its path here." {...form.register('photo')} />
+            </Col>
+            <Col md={6}>
+              <FormField
+                label={isEdit ? 'New login password' : 'Login password'}
+                controlId="vet-password"
+                required={!isEdit}
+                error={errors.password}
+                hint={isEdit ? 'Leave blank to keep the current password.' : 'At least 8 characters with an uppercase letter and a number.'}
+              >
+                <PasswordInput autoComplete="new-password" placeholder={isEdit ? 'Unchanged' : 'Set a password'} {...form.register('password')} />
+              </FormField>
             </Col>
             <Col xs={12}>
               <FormField label="Education" placeholder="e.g. DVM, University of the Philippines Los Baños" {...form.register('education')} />

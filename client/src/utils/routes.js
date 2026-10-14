@@ -4,14 +4,19 @@
  */
 import { ROLES } from './constants';
 
-export const getDashboardPath = (role) => (role === ROLES.ADMIN ? '/admin/dashboard' : '/owner/dashboard');
+/** Each role's area of the app. */
+const AREA_BY_ROLE = { [ROLES.ADMIN]: '/admin', [ROLES.VET]: '/vet', [ROLES.OWNER]: '/owner' };
+
+const getArea = (role) => AREA_BY_ROLE[role] ?? '/owner';
+
+export const getDashboardPath = (role) => `${getArea(role)}/dashboard`;
 
 /**
  * Returns the remembered page when it belongs to the user's area (e.g. a pet owner
  * returning to /owner/book?vet=v3), otherwise their dashboard.
  */
 export function getPostLoginPath(user, from) {
-  const area = user.role === ROLES.ADMIN ? '/admin' : '/owner';
+  const area = getArea(user.role);
   if (from?.pathname?.startsWith(area)) return `${from.pathname}${from.search ?? ''}`;
   return getDashboardPath(user.role);
 }

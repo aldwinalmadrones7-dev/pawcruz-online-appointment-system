@@ -19,7 +19,7 @@ export const HOW_IT_WORKS = [
   {
     icon: FiSmile,
     title: 'Meet your vet',
-    text: 'Pick a veterinarian who is free at that time. You get a queue number and booking reference instantly.',
+    text: 'Pick a veterinarian who is free at that time. You get a queue number and booking reference instantly, and the clinic confirms your visit.',
   },
 ];
 
@@ -47,7 +47,7 @@ export const TESTIMONIALS = [
 export const FAQS = [
   {
     question: 'How do I book a vet appointment?',
-    answer: 'Create a free pet-owner account and add your pets. Then choose the pets, a date, an available time and a veterinarian. You get a booking reference (like PWC-24X7Q) and a queue number right away.',
+    answer: 'Create a free pet-owner account and add your pets. Then choose the pets, a date, an available time and a veterinarian. You get a booking reference (like PWC-24X7Q) and a queue number right away, and the clinic confirms the visit shortly after.',
   },
   {
     question: 'Can I book for more than one pet?',

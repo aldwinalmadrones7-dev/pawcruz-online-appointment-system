@@ -158,7 +158,11 @@ export function validatePet(values) {
 
 // ---- Admin forms ----------------------------------------------------------------------
 
-export function validateVet(values) {
+/**
+ * Add/edit veterinarian. A new vet needs a login password; when editing, a blank
+ * password keeps the current one.
+ */
+export function validateVet(values, { isEdit = false } = {}) {
   const years = Number(values.yearsExperience);
   const bioLength = String(values.bio ?? '').trim().length;
   const shiftOk = values.shiftStart && values.shiftEnd && timeToMinutes(values.shiftEnd) - timeToMinutes(values.shiftStart) >= 60;
@@ -173,6 +177,7 @@ export function validateVet(values) {
     availableDays: values.availableDays?.length ? '' : 'Pick at least one working day.',
     shiftEnd: shiftOk ? '' : 'The shift must be at least 1 hour long (between 9:00 AM and 7:00 PM).',
     bio: bioLength < 20 ? 'Write a short bio (at least 20 characters).' : bioLength > 600 ? 'Keep the bio under 600 characters.' : '',
+    password: isEdit && !values.password ? '' : passwordError(values.password),
   });
 }
 
@@ -201,5 +206,32 @@ export function validateAppointmentForm(values, { isEdit = false, scheduleLocked
     source: APPOINTMENT_SOURCES.includes(values.source) ? '' : 'Choose a source.',
     status: !isEdit || APPOINTMENT_STATUSES.includes(values.status) ? '' : 'Choose a status.',
     notes: String(values.notes ?? '').length > 500 ? 'Notes must be 500 characters or fewer.' : '',
+  });
+}
+
+// ---- Vet forms ------------------------------------------------------------------------
+
+/** Optional number in a range; '' when blank or valid. */
+function rangeError(value, min, max, message) {
+  if (value === '' || value === null || value === undefined) return '';
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? '' : message;
+}
+
+function lengthError(value, max, label) {
+  return String(value ?? '').trim().length > max ? `${label} must be ${max} characters or fewer.` : '';
+}
+
+/** The medical record a vet writes when completing a visit. */
+export function validateMedicalRecord(values) {
+  const followUp = String(values.followUpDate ?? '');
+  return collect({
+    weight: rangeError(values.weight, 0.01, 150, 'Enter a weight between 0.01 and 150 kg.'),
+    temperature: rangeError(values.temperature, 30, 45, 'Enter a temperature between 30 and 45 °C.'),
+    diagnosis: isBlank(values.diagnosis) ? 'Diagnosis is required.' : lengthError(values.diagnosis, 500, 'Diagnosis'),
+    treatment: isBlank(values.treatment) ? 'Describe the treatment or procedure done.' : lengthError(values.treatment, 1000, 'Treatment'),
+    prescription: lengthError(values.prescription, 500, 'Prescription'),
+    followUpDate: !followUp ? '' : !/^\d{4}-\d{2}-\d{2}$/.test(followUp) || followUp <= getManilaToday() ? 'Pick a follow-up date after today.' : '',
+    remarks: lengthError(values.remarks, 500, 'Remarks'),
   });
 }

@@ -16,11 +16,13 @@ export const CLINIC_INFO = {
 
 export const ROLES = {
   OWNER: 'owner', // pet owner (the "patient" account)
-  ADMIN: 'admin', // clinic admin / front desk
+  ADMIN: 'admin', // clinic admin / front desk: accepts bookings
+  VET: 'vet', // veterinarian: sees accepted visits, writes the medical record and completes them
 };
 
 export const APPOINTMENT_STATUS = {
-  CONFIRMED: 'Confirmed',
+  PENDING: 'Pending', // booked online, waiting for the clinic to accept
+  CONFIRMED: 'Confirmed', // accepted by the clinic (walk-ins start here), assigned to the vet
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };
@@ -28,7 +30,7 @@ export const APPOINTMENT_STATUS = {
 export const APPOINTMENT_STATUSES = Object.values(APPOINTMENT_STATUS);
 
 /** Statuses that still hold a time slot on the schedule. */
-export const ACTIVE_STATUSES = [APPOINTMENT_STATUS.CONFIRMED];
+export const ACTIVE_STATUSES = [APPOINTMENT_STATUS.PENDING, APPOINTMENT_STATUS.CONFIRMED];
 
 export const APPOINTMENT_SOURCES = ['Online', 'Walk-In'];
 

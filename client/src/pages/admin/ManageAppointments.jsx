@@ -1,11 +1,12 @@
 /**
  * ManageAppointments — Admin CRUD for every appointment (final-vet's "List of Appointments"):
- * register walk-ins, edit, delete, mark completed, rebook and cancel, with search,
+ * accept or decline online bookings (accepted visits go to the vet, who completes them with a
+ * medical record), register walk-ins, edit, delete, rebook and cancel, with search,
  * status / vet / source / date filters and pagination.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Button, Dropdown, Form, Table } from 'react-bootstrap';
-import { FiCheckCircle, FiEdit2, FiMoreVertical, FiPlus, FiRepeat, FiSearch, FiTrash2, FiX, FiXCircle } from 'react-icons/fi';
+import { FiCheck, FiEdit2, FiMoreVertical, FiPlus, FiRepeat, FiSearch, FiTrash2, FiX, FiXCircle } from 'react-icons/fi';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AppointmentCard from '../../components/AppointmentCard';
@@ -25,13 +26,14 @@ import usePagination from '../../hooks/usePagination';
 import { deleteAppointment, getAppointments, updateAppointmentStatus } from '../../services/appointmentService';
 import { getServices } from '../../services/serviceService';
 import { getVets } from '../../services/vetService';
-import { canComplete, isUpcoming } from '../../utils/appointmentRules';
+import { canAccept, isUpcoming } from '../../utils/appointmentRules';
 import { APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_STATUSES } from '../../utils/constants';
 import { getManilaToday } from '../../utils/dateUtils';
 import { formatDate, formatDateShort, formatTimeRange, formatVetName, getFullName } from '../../utils/formatters';
 
-const { COMPLETED, CANCELLED } = APPOINTMENT_STATUS;
+const { PENDING, CONFIRMED, CANCELLED } = APPOINTMENT_STATUS;
 const CANCEL_REASONS = ['Veterinarian unavailable', 'Owner called to cancel', 'Clinic schedule change', 'Duplicate booking'];
+const DECLINE_REASONS = ['Veterinarian unavailable at that time', 'Clinic fully booked', 'Please call the clinic to rebook', 'Duplicate booking'];
 
 export default function ManageAppointments() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,9 +79,13 @@ export default function ManageAppointments() {
 
   const replaceAppointment = (updated) => setData((list) => list.map((a) => (a.id === updated.id ? updated : a)));
 
+  // Declining a pending request is a cancel with its own wording and reasons.
+  const isDecline = selected?.status === PENDING;
+  const cancelReasons = isDecline ? DECLINE_REASONS : CANCEL_REASONS;
+
   const open = (type, appointment = null) => {
     setSelected(appointment);
-    setCancelReason(CANCEL_REASONS[0]);
+    setCancelReason((appointment?.status === PENDING ? DECLINE_REASONS : CANCEL_REASONS)[0]);
     setModal(type);
   };
 
@@ -88,7 +94,11 @@ export default function ManageAppointments() {
     try {
       const updated = await updateAppointmentStatus(appointment.id, nextStatus, reason);
       replaceAppointment(updated);
-      toast.success(`${updated.pet.name}'s visit ${nextStatus === COMPLETED ? 'marked as completed' : 'was cancelled'}.`);
+      toast.success(
+        nextStatus === CONFIRMED
+          ? `${updated.pet.name}'s booking was accepted and sent to ${formatVetName(updated.vet)}.`
+          : `${updated.pet.name}'s ${appointment.status === PENDING ? 'booking was declined' : 'visit was cancelled'}.`,
+      );
       setModal(null);
     } catch (err) {
       toast.error(err.message);
@@ -133,10 +143,10 @@ export default function ManageAppointments() {
     const label = (text) => (withText ? <span>{text}</span> : null);
     return (
       <>
-        {canComplete(appointment) && (
-          <Button variant="brand" size="sm" className={cls} title="Mark completed" aria-label={`Mark ${appointment.pet.name}'s visit completed`} disabled={busy} onClick={() => changeStatus(appointment, COMPLETED)}>
-            <FiCheckCircle aria-hidden="true" />
-            {label('Complete')}
+        {canAccept(appointment) && (
+          <Button variant="brand" size="sm" className={cls} title="Accept and send to the vet" aria-label={`Accept ${appointment.pet.name}'s booking`} disabled={busy} onClick={() => changeStatus(appointment, CONFIRMED)}>
+            <FiCheck aria-hidden="true" />
+            {label('Accept')}
           </Button>
         )}
         {isUpcoming(appointment) && (
@@ -145,9 +155,17 @@ export default function ManageAppointments() {
               <FiRepeat aria-hidden="true" />
               {label('Rebook')}
             </Button>
-            <Button variant="outline-danger" size="sm" className={cls} title="Cancel" aria-label={`Cancel ${appointment.pet.name}'s visit`} disabled={busy} onClick={() => open('cancel', appointment)}>
+            <Button
+              variant="outline-danger"
+              size="sm"
+              className={cls}
+              title={appointment.status === PENDING ? 'Decline' : 'Cancel'}
+              aria-label={`${appointment.status === PENDING ? 'Decline' : 'Cancel'} ${appointment.pet.name}'s ${appointment.status === PENDING ? 'booking' : 'visit'}`}
+              disabled={busy}
+              onClick={() => open('cancel', appointment)}
+            >
               <FiXCircle aria-hidden="true" />
-              {label('Cancel')}
+              {label(appointment.status === PENDING ? 'Decline' : 'Cancel')}
             </Button>
           </>
         )}
@@ -185,7 +203,7 @@ export default function ManageAppointments() {
       <PageHeader
         eyebrow="Admin panel"
         title="List of appointments"
-        subtitle="Register walk-ins, keep the schedule tidy and close out visits once they’re done."
+        subtitle="Accept online bookings to send them to the vet, register walk-ins and keep the schedule tidy. Vets complete visits with a medical record."
         actions={
           <Button variant="cta" onClick={() => open('form')} disabled={!services || !vets}>
             <FiPlus aria-hidden="true" /> Register walk-in
@@ -312,9 +330,9 @@ export default function ManageAppointments() {
 
       <ConfirmModal
         show={modal === 'cancel'}
-        title="Cancel this visit?"
+        title={isDecline ? 'Decline this booking?' : 'Cancel this visit?'}
         message={selected ? `${selected.pet.name} (${getFullName(selected.owner)}) on ${formatDateShort(selected.date)}. The owner will see the reason.` : ''}
-        confirmLabel="Cancel visit"
+        confirmLabel={isDecline ? 'Decline booking' : 'Cancel visit'}
         cancelLabel="Keep it"
         icon={FiXCircle}
         busy={Boolean(busyId)}
@@ -324,7 +342,7 @@ export default function ManageAppointments() {
         <Form.Group controlId="admin-cancel-reason" className="text-start">
           <Form.Label>Reason</Form.Label>
           <Form.Select value={cancelReason} onChange={(event) => setCancelReason(event.target.value)}>
-            {CANCEL_REASONS.map((reason) => (
+            {cancelReasons.map((reason) => (
               <option key={reason}>{reason}</option>
             ))}
           </Form.Select>

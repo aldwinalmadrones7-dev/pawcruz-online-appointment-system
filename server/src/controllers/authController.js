@@ -46,8 +46,9 @@ export function getMe(req, res) {
   res.json(req.user);
 }
 
-/** PUT /api/auth/me */
+/** PUT /api/auth/me — vets' details come from their Vet profile, which the admin manages. */
 export async function updateMe(req, res) {
+  if (req.user.role === ROLES.VET) throw new ApiError('Please ask the clinic admin to update your veterinarian profile.', 403);
   assertValid(validateProfile(req.body));
   const email = normalizeEmail(req.body.email);
   if (await User.exists({ email, _id: { $ne: req.user._id } })) {

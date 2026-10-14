@@ -1,8 +1,8 @@
 /**
  * appointmentService.js — Appointments API, modelled on final-vet:
  * availability per vet (10-minute slots), booking one or more pets into back-to-back
- * slots with one vet, queue numbers, cancel, rebook, admin status changes, edits,
- * deletes and dashboard stats. The Express API re-checks every booking before saving.
+ * slots with one vet, queue numbers, cancel, rebook, admin accept, the vet's medical
+ * record, edits, deletes and dashboard stats. The Express API re-checks every booking before saving.
  */
 import axiosClient from '../api/axiosClient';
 import { APPOINTMENTS_CHANGED_EVENT } from '../utils/constants';
@@ -28,6 +28,12 @@ export async function getAppointments(filters = {}) {
 /** GET /appointments/mine — the logged-in pet owner's appointments. */
 export async function getMyAppointments() {
   const { data } = await axiosClient.get('/appointments/mine');
+  return data;
+}
+
+/** GET /appointments/vet — the logged-in vet's accepted visits (Confirmed and Completed). */
+export async function getVetAppointments() {
+  const { data } = await axiosClient.get('/appointments/vet');
   return data;
 }
 
@@ -68,9 +74,14 @@ export function cancelAppointment(id, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/cancel`, { reason }));
 }
 
-/** PATCH /appointments/:id/status (admin) — mark completed or cancel. */
+/** PATCH /appointments/:id/status (admin) — accept a pending booking ("Confirmed") or cancel it. */
 export function updateAppointmentStatus(id, status, reason = '') {
   return write(axiosClient.patch(`/appointments/${id}/status`, { status, reason }));
+}
+
+/** PATCH /appointments/:id/complete (vet) — saves the medical record and completes the visit. */
+export function completeAppointment(id, medicalRecord) {
+  return write(axiosClient.patch(`/appointments/${id}/complete`, medicalRecord));
 }
 
 /** PUT /appointments/:id (admin) — edit reason, notes, source, status and (for upcoming visits) the schedule. */

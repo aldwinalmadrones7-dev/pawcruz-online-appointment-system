@@ -87,6 +87,8 @@ npm run dev                 # http://localhost:5173
 | --- | --- | --- |
 | Pet owner | `owner@pawcruz.ph` | `Owner123!` |
 | Admin | `admin@pawcruz.ph` | `Admin123!` |
+| Vet (Dr. Neil Cruz) | `neil.cruz@pawcruz.ph` | `Vet12345!` |
+| Vet (Dr. Redmond Lopez) | `redmond.lopez@pawcruz.ph` | `Vet12345!` |
 
 The login page has **"Pet owner demo" / "Admin demo"** buttons that fill these in. Ten more sample pet
 owners (e.g. `paolo.garcia@example.com`) also use `Owner123!`. You can register new pet-owner accounts too.

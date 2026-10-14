@@ -17,9 +17,14 @@ export const DASHBOARD_NAV = {
   ],
   [ROLES.ADMIN]: [
     { to: '/admin/dashboard', label: 'Dashboard', icon: FiGrid },
-    { to: '/admin/appointments', label: 'Appointments', icon: FiCalendar, badgeKey: 'today' },
+    { to: '/admin/appointments', label: 'Appointments', icon: FiCalendar, badgeKey: 'pending' },
     { to: '/admin/patients', label: 'Animal Patients', icon: LuPawPrint },
     { to: '/admin/vets', label: 'Veterinarians', icon: FaUserMd },
     { to: '/admin/services', label: 'Services', icon: FiClipboard },
+  ],
+  [ROLES.VET]: [
+    { to: '/vet/dashboard', label: 'Dashboard', icon: FiGrid },
+    { to: '/vet/appointments', label: 'My Appointments', icon: FiCalendar, badgeKey: 'toComplete' },
+    { to: '/vet/patients', label: 'Animal Patients', icon: LuPawPrint },
   ],
 };

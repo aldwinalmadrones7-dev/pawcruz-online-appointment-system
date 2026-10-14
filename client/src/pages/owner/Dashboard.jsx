@@ -101,7 +101,7 @@ export default function Dashboard() {
         <>
           <Row className="g-3 g-lg-4 mb-4">
             <Col xs={6} xl={3}>
-              <StatCard icon={FiClock} label="Upcoming visits" value={stats.upcoming} hint="Confirmed" tone="brand" />
+              <StatCard icon={FiClock} label="Upcoming visits" value={stats.upcoming} hint="Pending or confirmed" tone="brand" />
             </Col>
             <Col xs={6} xl={3}>
               <StatCard icon={FiCheckCircle} label="Completed" value={stats.completed} hint="Visits finished" tone="success" />

@@ -24,7 +24,7 @@ export default function Forbidden() {
         </div>
         <p className="error-eyebrow">Error 403</p>
         <h1 className="error-title">403 — Not authorized</h1>
-        <p className="error-text">This area is only for {role === 'owner' ? 'clinic staff' : 'pet owners'}. Your account doesn't have access to it.</p>
+        <p className="error-text">This area is for a different kind of account, so yours doesn't have access to it.</p>
         <div className="d-flex flex-wrap gap-3 justify-content-center">
           <Button as={Link} to={getDashboardPath(role)} variant="brand" size="lg">
             <FiArrowLeft aria-hidden="true" /> Go to my dashboard
