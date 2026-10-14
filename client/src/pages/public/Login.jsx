@@ -1,6 +1,6 @@
 /**
  * Login — Email/password sign-in with inline validation, show/hide password,
- * a loading state, demo-account shortcuts, and a redirect back to the page
+ * a loading state, and a redirect back to the page
  * the visitor originally wanted.
  */
 import { useState } from 'react';
@@ -15,11 +15,6 @@ import useForm from '../../hooks/useForm';
 import { getPostLoginPath } from '../../utils/routes';
 import { validateLogin } from '../../utils/validators';
 import AuthLayout from './AuthLayout';
-
-const DEMO_ACCOUNTS = [
-  { label: 'Pet owner demo', email: 'owner@pawcruz.ph', password: 'Owner123!' },
-  { label: 'Veterinarian demo', email: 'redmond.lopez@pawcruz.ph', password: 'Vet12345!' },
-];
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -42,11 +37,6 @@ export default function Login() {
       setAuthError(err.message);
     }
   });
-
-  const fillDemo = (account) => {
-    setAuthError('');
-    form.setValues({ email: account.email, password: account.password });
-  };
 
   return (
     <AuthLayout title="Welcome back" subtitle="Pet owners book visits and manage their pets; veterinarians run the live queue.">
@@ -82,20 +72,6 @@ export default function Login() {
       <p className="auth-switch">
         New to PawCruz? <Link to="/register" state={location.state}>Create a free account</Link>
       </p>
-
-      <div className="demo-box">
-        <p>
-          <FiInfo aria-hidden="true" /> Demo accounts — click to fill in:
-        </p>
-        <div className="demo-buttons">
-          {DEMO_ACCOUNTS.map((account) => (
-            <button key={account.email} type="button" onClick={() => fillDemo(account)}>
-              <strong>{account.label}</strong>
-              <span>{account.email}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </AuthLayout>
   );
 }

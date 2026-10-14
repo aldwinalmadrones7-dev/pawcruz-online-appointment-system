@@ -1088,57 +1088,6 @@
   font-weight: 600;
 }
 
-.demo-box {
-  margin-top: clamp(0.75rem, 2.2vh, 1.25rem);
-  padding: 0.85rem 1rem;
-  border: 1.5px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-alt);
-}
-
-.demo-box p {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.demo-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-}
-
-.demo-buttons button {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0.65rem 0.8rem;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  text-align: left;
-  transition: border-color var(--duration) ease, transform var(--duration) var(--ease);
-}
-
-.demo-buttons button:hover {
-  border-color: var(--brand);
-  transform: translateY(-2px);
-}
-
-.demo-buttons strong {
-  font-size: 0.88rem;
-}
-
-.demo-buttons span {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  word-break: break-all;
-}
-
 @media (max-width: 991.98px) {
   .auth-card,
   .auth-card.is-wide {
