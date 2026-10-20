@@ -1,0 +1,6 @@
+{
+  "name": "pawcruz-online-appointment-system",
+  "private": true,
+  "description": "Root of the Vercel deployment: client/ (React website) + api/ (the Express API in server/ as a serverless function).",
+  "type": "module"
+}

@@ -1,13 +1,14 @@
 /**
  * axiosClient.js — Pre-configured Axios instance for the PawCruz Express API.
- * The base URL comes from VITE_API_URL (default http://localhost:5000/api) and every
- * request carries "Authorization: Bearer <token>" when the user is logged in.
+ * The base URL comes from VITE_API_URL; without it, development uses http://localhost:5000/api
+ * and the deployed site uses its own /api (Vercel runs the API there). Every request carries
+ * "Authorization: Bearer <token>" when the user is logged in.
  */
 import axios from 'axios';
 import { SESSION_EXPIRED_EVENT, STORAGE_KEYS } from '../utils/constants';
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api'),
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
 });

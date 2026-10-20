@@ -16,10 +16,21 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // correct client IPs for rate limiting behind a host's proxy
 app.use(helmet());
+/** True when the page calling the API is served from the API's own address (as on Vercel). */
+function isSameSite(req, origin) {
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+// Browsers may call the API from the React app's address(es) in CLIENT_URL, or from the
+// same site that serves the API.
 app.use(
-  cors({
-    // Only the React app's address(es) from CLIENT_URL may call the API from a browser.
-    origin: (origin, callback) => callback(null, !origin || env.clientUrls.includes(origin)),
+  cors((req, callback) => {
+    const origin = req.header('Origin');
+    callback(null, { origin: !origin || env.clientUrls.includes(origin) || isSameSite(req, origin) });
   }),
 );
 app.use(express.json({ limit: '100kb' }));
